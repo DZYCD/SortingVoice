@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>排序算法的音乐可视化</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 20px;
+            background-attachment: fixed;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding-top: 20px;
+        }
+        .top-links {
+            position: fixed;
+            top: 15px;
+            left: 20px;
+            display: flex;
+            gap: 20px;
+            z-index: 100;
+            background: rgba(0,0,0,0.3);
+            padding: 10px 18px;
+            border-radius: 25px;
+            backdrop-filter: blur(10px);
+        }
+        .top-links a {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.9em;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .top-links a:hover {
+            color: #00d4ff;
+            transform: scale(1.05);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf, #ff6b6b);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+            animation: glow 3s ease-in-out infinite alternate;
+        }
+        @keyframes glow {
+            from { filter: drop-shadow(0 0 5px rgba(0, 212, 255, 0.3)); }
+            to { filter: drop-shadow(0 0 20px rgba(123, 44, 191, 0.5)); }
+        }
+        .main-layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 25px;
+            align-items: start;
+        }
+        .sidebar {
+            background: rgba(255,255,255,0.03);
+            border-radius: 20px;
+            padding: 25px;
+            border: 1px solid rgba(255,255,255,0.08);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 20px;
+        }
+        .sidebar-title {
+            font-size: 1.1em;
+            color: #00d4ff;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .control-group {
+            margin-bottom: 20px;
+        }
+        .control-group label {
+            font-size: 0.85em;
+            color: #888;
+            display: block;
+            margin-bottom: 8px;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        .file-btn, .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.95em;
+            transition: all 0.3s;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .file-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .file-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+        .btn {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            font-weight: 500;
+        }
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(56, 239, 125, 0.4);
+        }
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .btn-stop {
+            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+        .btn-group .btn {
+            flex: 1;
+            padding: 12px 10px;
+        }
+        select {
+            padding: 12px 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.05);
+            color: white;
+            font-size: 0.95em;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s;
+        }
+        select:hover {
+            border-color: rgba(0, 212, 255, 0.5);
+        }
+        select:focus {
+            outline: none;
+            border-color: #00d4ff;
+        }
+        select option {
+            background: #1a1a2e;
+        }
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .speed-control input[type="range"] {
+            flex: 1;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255,255,255,0.1);
+            -webkit-appearance: none;
+            cursor: pointer;
+        }
+        .speed-control input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00d4ff, #7b2cbf);
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0, 212, 255, 0.5);
+        }
+        .speed-value {
+            background: rgba(0, 212, 255, 0.2);
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            color: #00d4ff;
+            min-width: 60px;
+            text-align: center;
+        }
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .canvas-container {
+            position: relative;
+            background: rgba(0,0,0,0.4);
+            border-radius: 20px;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 400px;
+            border: 1px solid rgba(255,255,255,0.08);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        #imageCanvas {
+            max-width: 100%;
+            display: block;
+            border-radius: 10px;
+        }
+        .info-panel {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+        .info-item {
+            background: rgba(255,255,255,0.03);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.06);
+            transition: all 0.3s;
+        }
+        .info-item:hover {
+            background: rgba(255,255,255,0.06);
+            transform: translateY(-3px);
+        }
+        .info-item .value {
+            font-size: 1.8em;
+            font-weight: bold;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .info-item .label {
+            font-size: 0.8em;
+            color: #666;
+            margin-top: 5px;
+        }
+        .slice-numbers {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 3px;
+            padding: 15px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        .slice-numbers::-webkit-scrollbar {
+            width: 6px;
+        }
+        .slice-numbers::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.2);
+            border-radius: 3px;
+        }
+        .slice-num {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65em;
+            background: rgba(255,255,255,0.08);
+            border-radius: 4px;
+            transition: all 0.15s;
+            font-weight: 500;
+        }
+        .slice-num.active {
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            color: #000;
+            transform: scale(1.3);
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.6);
+        }
+        .slice-num.comparing {
+            background: linear-gradient(135deg, #f45c43, #eb3349);
+            color: #fff;
+            transform: scale(1.2);
+        }
+        .slice-num.sorted {
+            background: linear-gradient(135deg, #38ef7d, #11998e);
+            color: #000;
+        }
+        .progress-section {
+            background: rgba(255,255,255,0.03);
+            padding: 15px 20px;
+            border-radius: 15px;
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+        .progress-label {
+            font-size: 0.8em;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf, #ff6b6b);
+            width: 0%;
+            transition: width 0.3s;
+            border-radius: 4px;
+        }
+        .placeholder {
+            color: #555;
+            text-align: center;
+            padding: 60px;
+        }
+        .placeholder span {
+            font-size: 4em;
+            display: block;
+            margin-bottom: 15px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.1); }
+        }
+        .placeholder p {
+            font-size: 1.1em;
+        }
+        @media (max-width: 900px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+            .sidebar {
+                position: static;
+            }
+            .info-panel {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+                padding-top: 60px;
+            }
+            .container {
+                padding-top: 10px;
+            }
+            .top-links {
+                top: 10px;
+                left: 10px;
+                right: 10px;
+                justify-content: center;
+                padding: 8px 15px;
+                gap: 15px;
+            }
+            .top-links a {
+                font-size: 0.8em;
+            }
+            h1 {
+                font-size: 1.5em;
+                margin-bottom: 15px;
+            }
+            .sidebar {
+                padding: 15px;
+                border-radius: 15px;
+            }
+            .sidebar-title {
+                font-size: 1em;
+                margin-bottom: 15px;
+            }
+            .control-group {
+                margin-bottom: 15px;
+            }
+            .control-group label {
+                font-size: 0.8em;
+                margin-bottom: 6px;
+            }
+            .file-btn, .btn {
+                padding: 10px 15px;
+                font-size: 0.85em;
+            }
+            .btn-group {
+                gap: 8px;
+            }
+            .btn-group .btn {
+                padding: 10px 8px;
+            }
+            select {
+                padding: 10px 12px;
+                font-size: 0.85em;
+            }
+            .speed-control {
+                gap: 8px;
+            }
+            .speed-value {
+                padding: 4px 10px;
+                font-size: 0.75em;
+                min-width: 50px;
+            }
+            .canvas-container {
+                min-height: 200px;
+                border-radius: 15px;
+            }
+            .info-panel {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+            .info-item {
+                padding: 12px;
+                border-radius: 10px;
+            }
+            .info-item .value {
+                font-size: 1.2em;
+            }
+            .info-item .label {
+                font-size: 0.7em;
+            }
+            .progress-section {
+                padding: 12px 15px;
+                border-radius: 10px;
+            }
+            .progress-label {
+                font-size: 0.75em;
+            }
+            .slice-numbers {
+                padding: 10px;
+                max-height: 100px;
+                gap: 2px;
+                border-radius: 10px;
+            }
+            .slice-num {
+                width: 18px;
+                height: 18px;
+                font-size: 0.55em;
+            }
+            .placeholder {
+                padding: 30px;
+            }
+            .placeholder span {
+                font-size: 2.5em;
+            }
+            .placeholder p {
+                font-size: 0.9em;
+            }
+        }
+        @media (max-width: 400px) {
+            h1 {
+                font-size: 1.2em;
+            }
+            .info-panel {
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+            }
+            .info-item {
+                padding: 10px;
+            }
+            .info-item .value {
+                font-size: 1em;
+            }
+            .slice-num {
+                width: 16px;
+                height: 16px;
+                font-size: 0.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="top-links">
+        <a href="https://github.com/DZYCD" target="_blank">GitHub</a>
+        <a href="http://47.100.11.98" target="_blank">个人主页</a>
+    </div>
+    <div class="container">
+        
+        <div class="main-layout">
+            <div class="sidebar">
+                
+                <div class="control-group">
+                    <label>预设图片</label>
+                    <select id="presetImageSelect">
+                        <option value="">-- 选择预设 --</option>
+                        <option value="image/Still_040_001.png">Still_040_001</option>
+                        <option value="image/Still_350_001.png">Still_350_001</option>
+                        <option value="image/Still_400_002_1.png">Still_400_002_1</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label>上传图片</label>
+                    <label class="file-btn" for="imageInput">上传图片</label>
+                    <input type="file" id="imageInput" accept="image/*">
+                </div>
+                
+                <div class="control-group">
+                    <label>预设音频</label>
+                    <select id="presetAudioSelect">
+                        <option value="">-- 选择预设 --</option>
+                        <option value="music/0103Adv15_Hanna007.mp3">0103Adv15_Hanna007</option>
+                        <option value="music/0204Adv12_Hiro032.mp3">0204Adv12_Hiro032</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label>上传音频</label>
+                    <label class="file-btn" for="audioInput">上传音频</label>
+                    <input type="file" id="audioInput" accept="audio/*">
+                </div>
+                
+                <div class="control-group">
+                    <label>选择排序算法</label>
+                    <select id="algorithmSelect">
+                        <option value="selection">选择排序</option>
+                        <option value="insertion">插入排序</option>
+                        <option value="quick">快速排序</option>
+                        <option value="merge">归并排序</option>
+                        <option value="heap">堆排序</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label>⏱️ 延迟时间</label>
+                    <div class="speed-control">
+                        <input type="range" id="delaySlider" min="50" max="500" value="200">
+                        <span class="speed-value" id="delayValue">200ms</span>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <label>🧩 切片数量</label>
+                    <div class="speed-control">
+                        <input type="range" id="sliceSlider" min="10" max="200" value="50">
+                        <span class="speed-value" id="sliceValue">50</span>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <div class="btn-group">
+                        <button class="btn" id="shuffleBtn" disabled>🔀 打乱</button>
+                        <button class="btn btn-stop" id="stopBtn" disabled>⏹️</button>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <button class="btn" id="startBtn" disabled style="font-size: 1.1em; padding: 15px;">▶️ 开始排序</button>
+                </div>
+            </div>
+            
+            <div class="main-content">
+                <div class="canvas-container">
+                    <canvas id="imageCanvas"></canvas>
+                    <div class="placeholder" id="placeholder">
+                        <span>⏳</span>
+                        <p>正在加载默认资源...</p>
+                    </div>
+                </div>
+                
+                <div class="info-panel">
+                    <div class="info-item">
+                        <div class="value" id="comparisons">0</div>
+                        <div class="label">比较次数</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="value" id="swaps">0</div>
+                        <div class="label">交换次数</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="value" id="currentAlgo">-</div>
+                        <div class="label">当前算法</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="value" id="status">等待中</div>
+                        <div class="label">状态</div>
+                    </div>
+                </div>
+                
+                <div class="progress-section">
+                    <div class="progress-label">排序进度</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                </div>
+                
+                <div class="slice-numbers" id="sliceNumbers"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let originalImage = null;
+        let audioContext = null;
+        let audioBuffer = null;
+        let slices = [];
+        let sliceOrder = [];
+        let isRunning = false;
+        let isStopped = false;
+        let delay = 200;
+        let comparisons = 0;
+        let swaps = 0;
+        let sliceCount = 50;
+
+        // DOM元素
+        const canvas = document.getElementById('imageCanvas');
+        const ctx = canvas.getContext('2d');
+        const imageInput = document.getElementById('imageInput');
+        const audioInput = document.getElementById('audioInput');
+        const presetImageSelect = document.getElementById('presetImageSelect');
+        const presetAudioSelect = document.getElementById('presetAudioSelect');
+        const algorithmSelect = document.getElementById('algorithmSelect');
+        const delaySlider = document.getElementById('delaySlider');
+        const delayValue = document.getElementById('delayValue');
+        const sliceSlider = document.getElementById('sliceSlider');
+        const sliceValueSpan = document.getElementById('sliceValue');
+        const shuffleBtn = document.getElementById('shuffleBtn');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const placeholder = document.getElementById('placeholder');
+        const sliceNumbersDiv = document.getElementById('sliceNumbers');
+
+        // 事件监听
+        imageInput.addEventListener('change', handleImageUpload);
+        audioInput.addEventListener('change', handleAudioUpload);
+        presetImageSelect.addEventListener('change', handlePresetImage);
+        presetAudioSelect.addEventListener('change', handlePresetAudio);
+        delaySlider.addEventListener('input', () => {
+            delay = parseInt(delaySlider.value);
+            delayValue.textContent = delay + 'ms';
+        });
+        sliceSlider.addEventListener('input', () => {
+            sliceCount = parseInt(sliceSlider.value);
+            sliceValueSpan.textContent = sliceCount;
+            if (originalImage) {
+                initializeSlices();
+            }
+        });
+        shuffleBtn.addEventListener('click', shuffleSlices);
+        startBtn.addEventListener('click', startSorting);
+        stopBtn.addEventListener('click', stopSorting);
+
+        // 处理预设图片选择
+        function handlePresetImage() {
+            const src = presetImageSelect.value;
+            if (!src) return;
+            
+            const img = new Image();
+            img.onload = () => {
+                originalImage = img;
+                initializeSlices();
+                checkReady();
+            };
+            img.onerror = () => {
+                alert('图片加载失败');
+            };
+            img.src = src;
+        }
+
+        // 处理预设音频选择
+        async function handlePresetAudio() {
+            const src = presetAudioSelect.value;
+            if (!src) return;
+            
+            try {
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                
+                const response = await fetch(src);
+                const arrayBuffer = await response.arrayBuffer();
+                audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                checkReady();
+            } catch (e) {
+                console.error('音频加载失败:', e);
+                alert('音频加载失败');
+            }
+        }
+
+        // 处理图片上传
+        function handleImageUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            presetImageSelect.value = ''; // 清除预设选择
+            
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    originalImage = img;
+                    initializeSlices();
+                    checkReady();
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // 处理音频上传
+        async function handleAudioUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            presetAudioSelect.value = ''; // 清除预设选择
+            
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            
+            const arrayBuffer = await file.arrayBuffer();
+            audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+            checkReady();
+        }
+
+        // 检查是否准备就绪
+        function checkReady() {
+            const ready = originalImage && audioBuffer;
+            shuffleBtn.disabled = !ready;
+            if (ready) {
+                placeholder.style.display = 'none';
+                document.getElementById('status').textContent = '已就绪';
+            }
+        }
+
+        // 初始化切片
+        function initializeSlices() {
+            if (!originalImage) return;
+            
+            const maxWidth = 1000;
+            const scale = Math.min(1, maxWidth / originalImage.width);
+            canvas.width = originalImage.width * scale;
+            canvas.height = originalImage.height * scale;
+            
+            const sliceWidth = canvas.width / sliceCount;
+            slices = [];
+            sliceOrder = [];
+            
+            // 创建临时canvas来获取切片
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = originalImage.width;
+            tempCanvas.height = originalImage.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.drawImage(originalImage, 0, 0);
+            
+            const origSliceWidth = originalImage.width / sliceCount;
+            
+            for (let i = 0; i < sliceCount; i++) {
+                const sliceCanvas = document.createElement('canvas');
+                sliceCanvas.width = origSliceWidth;
+                sliceCanvas.height = originalImage.height;
+                const sliceCtx = sliceCanvas.getContext('2d');
+                sliceCtx.drawImage(tempCanvas, 
+                    i * origSliceWidth, 0, origSliceWidth, originalImage.height,
+                    0, 0, origSliceWidth, originalImage.height
+                );
+                slices.push({
+                    index: i,
+                    canvas: sliceCanvas
+                });
+                sliceOrder.push(i);
+            }
+            
+            renderSlices();
+            updateSliceNumbers();
+        }
+
+        // 渲染切片
+        function renderSlices(activeIndices = [], comparingIndices = [], sortedIndices = []) {
+            if (slices.length === 0) return;
+            
+            const sliceWidth = canvas.width / sliceCount;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            for (let i = 0; i < sliceOrder.length; i++) {
+                const sliceIdx = sliceOrder[i];
+                const slice = slices[sliceIdx];
+                ctx.drawImage(slice.canvas, 
+                    0, 0, slice.canvas.width, slice.canvas.height,
+                    i * sliceWidth, 0, sliceWidth, canvas.height
+                );
+            }
+            
+            updateSliceNumbers(activeIndices, comparingIndices, sortedIndices);
+        }
+
+        // 更新切片序号显示
+        function updateSliceNumbers(activeIndices = [], comparingIndices = [], sortedIndices = []) {
+            sliceNumbersDiv.innerHTML = '';
+            for (let i = 0; i < sliceOrder.length; i++) {
+                const div = document.createElement('div');
+                div.className = 'slice-num';
+                div.textContent = sliceOrder[i];
+                
+                if (activeIndices.includes(i)) div.classList.add('active');
+                if (comparingIndices.includes(i)) div.classList.add('comparing');
+                if (sortedIndices.includes(i)) div.classList.add('sorted');
+                
+                sliceNumbersDiv.appendChild(div);
+            }
+        }
+
+        // 打乱切片
+        function shuffleSlices() {
+            for (let i = sliceOrder.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [sliceOrder[i], sliceOrder[j]] = [sliceOrder[j], sliceOrder[i]];
+            }
+            renderSlices();
+            startBtn.disabled = false;
+            resetStats();
+            document.getElementById('status').textContent = '已打乱';
+        }
+
+        // 播放音频片段
+        function playAudioSlice(sliceIndex) {
+            if (!audioBuffer || !audioContext) return;
+            
+            const source = audioContext.createBufferSource();
+            source.buffer = audioBuffer;
+            source.connect(audioContext.destination);
+            
+            const startTime = (sliceIndex / sliceCount) * audioBuffer.duration;
+            const duration = delay / 1000;
+            
+            source.start(0, startTime, duration);
+        }
+
+        // 播放完整音频
+        function playFullAudio() {
+            if (!audioBuffer || !audioContext) return;
+            
+            const source = audioContext.createBufferSource();
+            source.buffer = audioBuffer;
+            source.connect(audioContext.destination);
+            source.start(0);
+        }
+
+        // 延迟函数
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // 重置统计
+        function resetStats() {
+            comparisons = 0;
+            swaps = 0;
+            document.getElementById('comparisons').textContent = '0';
+            document.getElementById('swaps').textContent = '0';
+            document.getElementById('progressFill').style.width = '0%';
+        }
+
+        // 更新统计
+        function updateStats() {
+            document.getElementById('comparisons').textContent = comparisons;
+            document.getElementById('swaps').textContent = swaps;
+        }
+
+        // 停止排序
+        function stopSorting() {
+            isStopped = true;
+            isRunning = false;
+            stopBtn.disabled = true;
+            startBtn.disabled = false;
+            shuffleBtn.disabled = false;
+            document.getElementById('status').textContent = '已停止';
+        }
+
+        // 开始排序
+        async function startSorting() {
+            if (isRunning) return;
+            
+            isRunning = true;
+            isStopped = false;
+            startBtn.disabled = true;
+            shuffleBtn.disabled = true;
+            stopBtn.disabled = false;
+            resetStats();
+            
+            const algorithm = algorithmSelect.value;
+            document.getElementById('currentAlgo').textContent = algorithmSelect.options[algorithmSelect.selectedIndex].text;
+            document.getElementById('status').textContent = '排序中...';
+            
+            // 恢复音频上下文
+            if (audioContext && audioContext.state === 'suspended') {
+                await audioContext.resume();
+            }
+            
+            try {
+                switch (algorithm) {
+                    case 'selection': await selectionSort(); break;
+                    case 'insertion': await insertionSort(); break;
+                    case 'quick': await quickSort(0, sliceOrder.length - 1); break;
+                    case 'merge': await mergeSort(0, sliceOrder.length - 1); break;
+                    case 'heap': await heapSort(); break;
+                }
+                
+                if (!isStopped) {
+                    document.getElementById('status').textContent = '排序完成！';
+                    document.getElementById('progressFill').style.width = '100%';
+                    renderSlices([], [], Array.from({length: sliceCount}, (_, i) => i));
+                    playFullAudio();
+                }
+            } catch (e) {
+                console.error(e);
+            }
+            
+            isRunning = false;
+            startBtn.disabled = false;
+            shuffleBtn.disabled = false;
+            stopBtn.disabled = true;
+        }
+
+        // 选择排序
+        async function selectionSort() {
+            const n = sliceOrder.length;
+            for (let i = 0; i < n - 1; i++) {
+                let minIdx = i;
+                for (let j = i + 1; j < n; j++) {
+                    if (isStopped) return;
+                    
+                    comparisons++;
+                    renderSlices([minIdx, j], [j]);
+                    playAudioSlice(sliceOrder[j]);
+                    
+                    if (sliceOrder[j] < sliceOrder[minIdx]) {
+                        minIdx = j;
+                    }
+                    
+                    updateStats();
+                    updateProgress();
+                    await sleep(delay);
+                }
+                
+                if (minIdx !== i) {
+                    [sliceOrder[i], sliceOrder[minIdx]] = [sliceOrder[minIdx], sliceOrder[i]];
+                    swaps++;
+                    updateStats();
+                }
+            }
+        }
+
+        // 插入排序
+        async function insertionSort() {
+            const n = sliceOrder.length;
+            for (let i = 1; i < n; i++) {
+                let key = sliceOrder[i];
+                let j = i - 1;
+                
+                while (j >= 0 && sliceOrder[j] > key) {
+                    if (isStopped) return;
+                    
+                    comparisons++;
+                    sliceOrder[j + 1] = sliceOrder[j];
+                    swaps++;
+                    
+                    renderSlices([j, j + 1], [j]);
+                    playAudioSlice(sliceOrder[j]);
+                    updateStats();
+                    updateProgress();
+                    await sleep(delay);
+                    
+                    j--;
+                }
+                sliceOrder[j + 1] = key;
+            }
+        }
+
+        // 快速排序
+        async function quickSort(low, high) {
+            if (low < high && !isStopped) {
+                const pi = await partition(low, high);
+                await quickSort(low, pi - 1);
+                await quickSort(pi + 1, high);
+            }
+        }
+
+        async function partition(low, high) {
+            const pivot = sliceOrder[high];
+            let i = low - 1;
+            
+            for (let j = low; j < high; j++) {
+                if (isStopped) return i + 1;
+                
+                comparisons++;
+                renderSlices([j, high], [j]);
+                playAudioSlice(sliceOrder[j]);
+                
+                if (sliceOrder[j] < pivot) {
+                    i++;
+                    [sliceOrder[i], sliceOrder[j]] = [sliceOrder[j], sliceOrder[i]];
+                    swaps++;
+                }
+                
+                updateStats();
+                updateProgress();
+                await sleep(delay);
+            }
+            
+            [sliceOrder[i + 1], sliceOrder[high]] = [sliceOrder[high], sliceOrder[i + 1]];
+            swaps++;
+            updateStats();
+            
+            return i + 1;
+        }
+
+        // 归并排序
+        async function mergeSort(left, right) {
+            if (left < right && !isStopped) {
+                const mid = Math.floor((left + right) / 2);
+                await mergeSort(left, mid);
+                await mergeSort(mid + 1, right);
+                await merge(left, mid, right);
+            }
+        }
+
+        async function merge(left, mid, right) {
+            const leftArr = sliceOrder.slice(left, mid + 1);
+            const rightArr = sliceOrder.slice(mid + 1, right + 1);
+            
+            let i = 0, j = 0, k = left;
+            
+            while (i < leftArr.length && j < rightArr.length && !isStopped) {
+                comparisons++;
+                renderSlices([k], [left + i, mid + 1 + j]);
+                playAudioSlice(sliceOrder[k]);
+                
+                if (leftArr[i] <= rightArr[j]) {
+                    sliceOrder[k] = leftArr[i];
+                    i++;
+                } else {
+                    sliceOrder[k] = rightArr[j];
+                    j++;
+                }
+                swaps++;
+                k++;
+                
+                updateStats();
+                updateProgress();
+                await sleep(delay);
+            }
+            
+            while (i < leftArr.length && !isStopped) {
+                sliceOrder[k] = leftArr[i];
+                renderSlices([k]);
+                playAudioSlice(sliceOrder[k]);
+                i++;
+                k++;
+                swaps++;
+                updateStats();
+                await sleep(delay);
+            }
+            
+            while (j < rightArr.length && !isStopped) {
+                sliceOrder[k] = rightArr[j];
+                renderSlices([k]);
+                playAudioSlice(sliceOrder[k]);
+                j++;
+                k++;
+                swaps++;
+                updateStats();
+                await sleep(delay);
+            }
+        }
+
+        // 堆排序
+        async function heapSort() {
+            const n = sliceOrder.length;
+            
+            for (let i = Math.floor(n / 2) - 1; i >= 0; i--) {
+                await heapify(n, i);
+            }
+            
+            for (let i = n - 1; i > 0; i--) {
+                if (isStopped) return;
+                
+                [sliceOrder[0], sliceOrder[i]] = [sliceOrder[i], sliceOrder[0]];
+                swaps++;
+                renderSlices([0, i]);
+                playAudioSlice(sliceOrder[0]);
+                updateStats();
+                updateProgress();
+                await sleep(delay);
+                
+                await heapify(i, 0);
+            }
+        }
+
+        async function heapify(n, i) {
+            let largest = i;
+            const left = 2 * i + 1;
+            const right = 2 * i + 2;
+            
+            if (left < n) {
+                comparisons++;
+                if (sliceOrder[left] > sliceOrder[largest]) {
+                    largest = left;
+                }
+            }
+            
+            if (right < n) {
+                comparisons++;
+                if (sliceOrder[right] > sliceOrder[largest]) {
+                    largest = right;
+                }
+            }
+            
+            if (largest !== i && !isStopped) {
+                [sliceOrder[i], sliceOrder[largest]] = [sliceOrder[largest], sliceOrder[i]];
+                swaps++;
+                
+                renderSlices([i, largest], [largest]);
+                playAudioSlice(sliceOrder[largest]);
+                updateStats();
+                await sleep(delay);
+                
+                await heapify(n, largest);
+            }
+        }
+
+        // 计算已排序元素数量（在正确位置的元素）
+        function countSortedElements() {
+            let count = 0;
+            for (let i = 0; i < sliceOrder.length; i++) {
+                if (sliceOrder[i] === i) {
+                    count++;
+                }
+            }
+            return count;
+        }
+
+        // 更新进度条 - 基于已排序元素比例
+        function updateProgress() {
+            const sorted = countSortedElements();
+            const percent = (sorted / sliceOrder.length) * 100;
+            document.getElementById('progressFill').style.width = percent + '%';
+        }
+
+        // 页面加载时显示提示
+        window.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('status').textContent = '请选择资源';
+            placeholder.innerHTML = '<span>🎨</span><p>请选择预设或上传图片和音频</p>';
+        });
+    </script>
+</body>
+</html>
