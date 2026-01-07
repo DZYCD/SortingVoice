@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UI组件库 - 魔法少女的审判前夜</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="ui-components.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 40px;
+        }
+        .demo-container { max-width: 1400px; margin: 0 auto; }
+        .demo-header { text-align: center; margin-bottom: 60px; }
+        .demo-header h1 { font-family: 'Noto Serif SC', serif; font-size: 2.5rem; color: #d4af37; margin-bottom: 10px; }
+        .demo-header p { color: #aaa; font-size: 1.1rem; }
+        .demo-section { margin-bottom: 60px; }
+        .demo-section-title { font-family: 'Noto Serif SC', serif; font-size: 1.5rem; color: #d4af37; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid rgba(139, 115, 85, 0.4); }
+        .demo-row { display: flex; flex-wrap: wrap; gap: 30px; margin-bottom: 30px; }
+        .demo-item { flex: 1; min-width: 300px; }
+        .demo-label { font-size: 0.9rem; color: #888; margin-bottom: 10px; }
+        .demo-code { background: rgba(0, 0, 0, 0.5); border: 1px solid #333; border-radius: 5px; padding: 15px; margin-top: 15px; font-family: 'Consolas', monospace; font-size: 0.85rem; color: #8bc34a; overflow-x: auto; white-space: pre; }
+        .demo-preview { padding: 30px; background: rgba(0, 0, 0, 0.3); border-radius: 10px; margin-bottom: 15px; }
+        .btn-demo-container { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+        .night-mode-toggle { position: fixed; top: 20px; right: 20px; padding: 10px 20px; background: rgba(139, 30, 50, 0.5); border: 1px solid #8b1e32; color: #fff; border-radius: 5px; cursor: pointer; z-index: 100; }
+        .title-demo-container { position: relative; min-height: 200px; display: flex; align-items: center; justify-content: center; }
+        .logo-demo-container { position: relative; height: 150px; }
+        /* 角色卡片演示容器 */
+        .char-card-demo { position: relative; height: 500px; background: rgba(0,0,0,0.4); border-radius: 10px; overflow: hidden; }
+        .char-card-demo .char-card-list { position: absolute; right: 0; top: 50%; transform: translateY(-50%); }
+        /* 角色展示面板演示 */
+        .showcase-demo { position: relative; height: 700px; background: rgba(0,0,0,0.4); border-radius: 10px; overflow: hidden; }
+        .showcase-demo .char-showcase { position: absolute; }
+    </style>
+</head>
+<body>
+    <button class="night-mode-toggle" onclick="toggleNightMode()">切换日夜模式</button>
+    <div class="demo-container">
+        <div class="demo-header">
+            <h1>⚖ UI组件库 ⚖</h1>
+            <p>魔法少女的审判前夜 - 前端样式素材</p>
+        </div>
+
+        <!-- 1. 暗金边框卡片 -->
+        <div class="demo-section">
+            <h2 class="demo-section-title">1. 暗金边框卡片 (.gold-card)</h2>
+            <div class="demo-row">
+                <div class="demo-item">
+                    <div class="demo-label">预览效果</div>
+                    <div class="gold-card">
+                        <h3 class="gold-card-title">🎵 卡片标题</h3>
+                        <div class="gold-card-content">
+                            <p>这是卡片内容区域。暗金色边框搭配深色背景，四角有菱形装饰。</p>
+                            <p>适用于设置面板、信息展示等场景。</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="demo-item">
+                    <div class="demo-label">使用方法</div>
+                    <div class="demo-code">&lt;div class="gold-card"&gt;
+    &lt;h3 class="gold-card-title"&gt;标题&lt;/h3&gt;
+    &lt;div class="gold-card-content"&gt;内容...&lt;/div&gt;
+&lt;/div&gt;</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. 装饰性标题 -->
+        <div class="demo-section">
+            <h2 class="demo-section-title">2. 装饰性标题 (.decorated-title-wrapper)</h2>
+            <div class="demo-row">
+                <div class="demo-item">
+                    <div class="demo-label">预览效果</div>
+                    <div class="demo-preview title-demo-container">
+                        <div class="decorated-title-wrapper">
+                            <div class="title-decor-top">
+                                <span class="decor-line"></span>
+                                <span class="decor-diamond">◇</span>
+                                <span class="decor-line"></span>
+                            </div>
+                            <h2 class="decorated-title">游戏设置</h2>
+                            <div class="title-decor-bottom">
+                                <span class="decor-scale">⚖</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="demo-item">
+                    <div class="demo-label">使用方法</div>
+                    <div class="demo-code">&lt;div class="decorated-title-wrapper"&gt;
+    &lt;div class="title-decor-top"&gt;
+        &lt;span class="decor-line"&gt;&lt;/span&gt;
+        &lt;span class="decor-diamond"&gt;◇&lt;/span&gt;
+        &lt;span class="decor-line"&gt;&lt;/span&gt;
+    &lt;/div&gt;
+    &lt;h2 class="decorated-title"&gt;标题文字&lt;/h2&gt;
+    &lt;div class="title-decor-bottom"&gt;
+        &lt;span class="decor-scale"&gt;⚖&lt;/span&gt;
+    &lt;/div&gt;
+&lt;/div&gt;</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. 主按钮 -->
+        <div class="demo-section" id="btn-section">
+            <h2 class="demo-section-title">3. 主按钮 (.btn-primary)</h2>
+            <div class="demo-row">
+                <div class="demo-item">
+                    <div class="demo-label">预览效果（白天模式 - 红色 / 夜晚模式 - 白色）</div>
+                    <div class="demo-preview btn-demo-container">
+                        <button class="btn-primary">
+                            <span class="decor-left">⚖</span>单人游戏<span class="decor-right">⚖</span>
+                        </button>
+                        <button class="btn-primary">
+                            <span class="decor-left">⚖</span>多人游戏<span class="decor-right">⚖</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="demo-item">
+                    <div class="demo-label">使用方法</div>
+                    <div class="demo-code">&lt;button class="btn-primary"&gt;
+    &lt;span class="decor-left"&gt;⚖&lt;/span&gt;
+    按钮文字
+    &lt;span class="decor-right"&gt;⚖&lt;/span&gt;
+&lt;/button&gt;
+
+&lt;!-- 夜间模式：父元素添加 .night-mode --&gt;</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. 次要按钮 -->
+        <div class="demo-section">
+            <h2 class="demo-section-title">4. 次要按钮 (.btn-secondary)</h2>
+            <div class="demo-row">
+                <div class="demo-item">
+                    <div class="demo-label">预览效果</div>
+                    <div class="demo-preview" style="display: flex; gap: 30px; justify-content: center;">
+                        <button class="btn-secondary">设置</button>
+                        <button class="btn-secondary">规则</button>
+                        <button class="btn-secondary">制作人员</button>
+                    </div>
+                </div>
+                <div class="demo-item">
+                    <div class="demo-label">使用方法</div>
+                    <div class="demo-code">&lt;button class="btn-secondary"&gt;按钮文字&lt;/button&gt;
+
+&lt;!-- 特点：悬停时显示下划线动画 --&gt;</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. 日夜切换按钮 -->
+        <div class="demo-section">
+            <h2 class="demo-section-title">5. 日夜切换按钮 (.btn-daynight)</h2>
+            <div class="demo-row">
+                <div class="demo-item">
+                    <div class="demo-label">预览效果</div>
+                    <div class="demo-preview" style="display: flex; gap: 20px; justify-content: center;">
+                        <button class="btn-daynight">白昼</button>
+                        <button class="btn-daynight">黑夜</button>
+                    </div>
+                </div>
+                <div class="demo-item">
+                    <div class="demo-label">使用方法</div>
+                    <div class="demo-code">&lt;button class="btn-daynight"&gt;白昼&lt;/button&gt;
+&lt;button class="btn-daynight"&gt;黑夜&lt;/button&gt;</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. 返回按钮 -->
+        <div class="demo-section">
+            <h2 class="demo-section-title">6. 返回按钮 (.btn-back)</h2>
+            <div class="demo-row">
+                <div class="demo-item">
+                    <div class="demo-label">预览效果</div>
+                    <div class="demo-preview" style="position: relative; height: 80px;">
+                        <button class="btn-back">← 返回</button>
+                    </div>
+                </div>
+                <div class="demo-item">
+                    <div class="demo-label">使用方法</div>
+                    <div class="demo-code">&lt;button class="btn-back"&gt;← 返回&lt;/button&gt;
+
+&lt;!-- 默认定位在左上角 (position: absolute) --&gt;</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7. 底部Logo -->
+        <div class="demo-section">
+            <h2 class="demo-section-title">7. 底部Logo (.footer-logo)</h2>
+            <div class="demo-row">
+                <div class="demo-item">
+                    <div class="demo-label">预览效果</div>
+                    <div class="demo-preview logo-demo-container">
+                        <div class="footer-logo" style="position: relative; transform: none; left: auto;">
+                            <div class="logo-main">
+                                <span class="logo-scale left">⚖</span>
+                                <div class="logo-text">
+                                    <div class="logo-line1">魔法少女的</div>
+                                    <div class="logo-line2">审判前夜</div>
+                                </div>
+                                <span class="logo-scale right">⚖</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="demo-item">
+                    <div class="demo-label">使用方法</div>
+                    <div class="demo-code">&lt;div class="footer-logo"&gt;
+    &lt;div class="logo-main"&gt;
+        &lt;span class="logo-scale left"&gt;⚖&lt;/span&gt;
+        &lt;div class="logo-text"&gt;
+            &lt;div class="logo-line1"&gt;魔法少女的&lt;/div&gt;
+            &lt;div class="logo-line2"&gt;审判前夜&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;span class="logo-scale right"&gt;⚖&lt;/span&gt;
+    &lt;/div&gt;
+&lt;/div&gt;</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 8. 表单控件 -->
+        <div class="demo-section">
+            <h2 class="demo-section-title">8. 表单控件</h2>
+            <div class="demo-row">
+                <div class="demo-item">
+                    <div class="demo-label">滑块 (.slider-gold)</div>
+                    <div class="demo-preview">
+                        <input type="range" class="slider-gold" min="0" max="100" value="50">
+                    </div>
+                    <div class="demo-code">&lt;input type="range" class="slider-gold" min="0" max="100" value="50"&gt;</div>
+                </div>
+                <div class="demo-item">
+                    <div class="demo-label">开关按钮 (.toggle-gold)</div>
+                    <div class="demo-preview" style="display: flex; gap: 20px; justify-content: center;">
+                        <button class="toggle-gold">✨ 开启</button>
+                        <button class="toggle-gold off">关闭</button>
+                    </div>
+                    <div class="demo-code">&lt;button class="toggle-gold"&gt;✨ 开启&lt;/button&gt;
+&lt;button class="toggle-gold off"&gt;关闭&lt;/button&gt;</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 9. 圆形选择按钮 -->
+        <div class="demo-section">
+            <h2 class="demo-section-title">9. 圆形选择按钮 (.btn-circle)</h2>
+            <div class="demo-row">
+                <div class="demo-item">
+                    <div class="demo-label">预览效果 - 人数选择</div>
+                    <div class="demo-preview">
+                        <div class="btn-circle-group">
+                            <button class="btn-circle" onclick="selectCircle(this)">2</button>
+                            <button class="btn-circle selected" onclick="selectCircle(this)">3</button>
+                            <button class="btn-circle" onclick="selectCircle(this)">4</button>
+                        </div>
+                        <p class="player-count-hint">选择 2-4 名玩家参与游戏</p>
+                        <button class="btn-confirm">确认</button>
+                    </div>
+                </div>
+                <div class="demo-item">
+                    <div class="demo-label">使用方法</div>
+                    <div class="demo-code">&lt;div class="btn-circle-group"&gt;
+    &lt;button class="btn-circle"&gt;2&lt;/button&gt;
+    &lt;button class="btn-circle selected"&gt;3&lt;/button&gt;
+    &lt;button class="btn-circle"&gt;4&lt;/button&gt;
+&lt;/div&gt;
+&lt;p class="player-count-hint"&gt;提示文字&lt;/p&gt;
+&lt;button class="btn-confirm"&gt;确认&lt;/button&gt;</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 10. 角色主题色文字 -->
+        <div class="demo-section">
+            <h2 class="demo-section-title">10. 角色主题色文字 (.char-text)</h2>
+            <div class="demo-row">
+                <div class="demo-item">
+                    <div class="demo-label">预览效果 - 所有角色</div>
+                    <div class="demo-preview" style="line-height: 2.5;">
+                        <span class="char-text char-emma">樱羽艾玛</span> · 
+                        <span class="char-text char-coco">野原可可</span> · 
+                        <span class="char-text char-hiro">希罗</span> · 
+                        <span class="char-text char-sherry">雪莉</span> · 
+                        <span class="char-text char-hanna">汉娜</span> · 
+                        <span class="char-text char-anan">安安</span> · 
+                        <span class="char-text char-noah">诺亚</span> · 
+                        <span class="char-text char-leiya">蕾雅</span> · 
+                        <span class="char-text char-milia">米莉亚</span> · 
+                        <span class="char-text char-nayeka">娜叶卡</span> · 
+                        <span class="char-text char-marg">玛格</span> · 
+                        <span class="char-text char-arisa">亚里沙</span> · 
+                        <span class="char-text char-meruru">梅露露</span>
+                    </div>
+                </div>
+                <div class="demo-item">
+                    <div class="demo-label">使用方法</div>
+                    <div class="demo-code">&lt;span class="char-text char-emma"&gt;樱羽艾玛&lt;/span&gt;
+&lt;span class="char-text char-coco"&gt;野原可可&lt;/span&gt;
+
+&lt;!-- 自定义颜色 --&gt;
+&lt;span class="char-text" style="--char-color: #ff6b6b;"&gt;自定义&lt;/span&gt;
+
+&lt;!-- 强发光版本 --&gt;
+&lt;span class="char-text-glow char-emma"&gt;发光效果&lt;/span&gt;</div>
+                </div>
+            </div>
+            <div class="demo-row">
+                <div class="demo-item">
+                    <div class="demo-label">标签样式 (.char-tag)</div>
+                    <div class="demo-preview" style="display: flex; flex-wrap: wrap; gap: 10px;">
+                        <span class="char-tag char-emma">樱羽艾玛</span>
+                        <span class="char-tag char-coco">野原可可</span>
+                        <span class="char-tag char-leiya">蕾雅</span>
+                        <span class="char-tag char-noah">诺亚</span>
+                    </div>
+                </div>
+                <div class="demo-item">
+                    <div class="demo-label">下划线样式 (.char-underline)</div>
+                    <div class="demo-preview">
+                        <p>这是一段包含<span class="char-underline char-emma">樱羽艾玛</span>和<span class="char-underline char-coco">野原可可</span>的文字。</p>
+                    </div>
+                </div>
+            </div>
+            <div class="gold-card" style="margin-top: 20px;">
+                <h3 class="gold-card-title">📋 角色类名对照表</h3>
+                <div class="gold-card-content">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                        <div><span class="char-text char-emma">■</span> .char-emma (#ffb6c1)</div>
+                        <div><span class="char-text char-hiro">■</span> .char-hiro (#e94560)</div>
+                        <div><span class="char-text char-coco">■</span> .char-coco (#f39c12)</div>
+                        <div><span class="char-text char-sherry">■</span> .char-sherry (#3498db)</div>
+                        <div><span class="char-text char-hanna">■</span> .char-hanna (#27ae60)</div>
+                        <div><span class="char-text char-anan">■</span> .char-anan (#9b59b6)</div>
+                        <div><span class="char-text char-noah">■</span> .char-noah (渐变)</div>
+                        <div><span class="char-text char-leiya">■</span> .char-leiya (#ffd700)</div>
+                        <div><span class="char-text char-milia">■</span> .char-milia (#f1c40f)</div>
+                        <div><span class="char-text char-nayeka">■</span> .char-nayeka (#2c3e50)</div>
+                        <div><span class="char-text char-marg">■</span> .char-marg (#9b59b6)</div>
+                        <div><span class="char-text char-arisa">■</span> .char-arisa (#c0392b)</div>
+                        <div><span class="char-text char-meruru">■</span> .char-meruru (#ffb6c1)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 11. 角色选择卡片 -->
+        <div class="demo-section">
+            <h2 class="demo-section-title">11. 角色选择卡片 (.char-card)</h2>
+            <div class="demo-row">
+                <div class="demo-item" style="flex: 2;">
+                    <div class="demo-label">预览效果 - 右侧滑动卡片（悬停/选中时滑出）</div>
+                    <div class="char-card-demo">
+                        <div class="char-card-list">
+                            <div class="char-card" style="--char-color: #ffb6c1;" onclick="selectCard(this)">
+                                <div class="char-card-avatar">
+                                    <img src="../icon/profile/Profile_Emma.png" alt="艾玛">
+                                </div>
+                                <span class="char-card-name">樱羽艾玛</span>
+                            </div>
+                            <div class="char-card selected" style="--char-color: #e94560;">
+                                <div class="char-card-avatar">
+                                    <img src="../icon/profile/Profile_Hiro.png" alt="希罗">
+                                </div>
+                                <span class="char-card-name">希罗</span>
+                            </div>
+                            <div class="char-card" style="--char-color: #f39c12;" onclick="selectCard(this)">
+                                <div class="char-card-avatar">
+                                    <img src="../icon/profile/Profile_Coco.png" alt="可可">
+                                </div>
+                                <span class="char-card-name">野原可可</span>
+                            </div>
+                            <div class="char-card disabled" style="--char-color: #3498db;">
+                                <div class="char-card-avatar">
+                                    <img src="../icon/profile/Profile_Sherry.png" alt="雪莉">
+                                </div>
+                                <span class="char-card-name">雪莉</span>
+                                <span class="char-card-taken">玩家1</span>
+                            </div>
+                            <div class="char-card" style="--char-color: #27ae60;" onclick="selectCard(this)">
+                                <div class="char-card-avatar">
+                                    <img src="../icon/profile/Profile_Hanna.png" alt="汉娜">
+                                </div>
+                                <span class="char-card-name">汉娜</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="demo-item">
+                    <div class="demo-label">使用方法</div>
+                    <div class="demo-code">&lt;div class="char-card-list"&gt;
+    &lt;!-- 普通状态 --&gt;
+    &lt;div class="char-card" style="--char-color: #ffb6c1;"&gt;
+        &lt;div class="char-card-avatar"&gt;
+            &lt;img src="头像路径" alt="角色名"&gt;
+        &lt;/div&gt;
+        &lt;span class="char-card-name"&gt;角色名&lt;/span&gt;
+    &lt;/div&gt;
+    
+    &lt;!-- 选中状态 --&gt;
+    &lt;div class="char-card selected"&gt;...&lt;/div&gt;
+    
+    &lt;!-- 已被选择（禁用）--&gt;
+    &lt;div class="char-card disabled"&gt;
+        ...
+        &lt;span class="char-card-taken"&gt;玩家1&lt;/span&gt;
+    &lt;/div&gt;
+&lt;/div&gt;</div>
+                    <div class="demo-label" style="margin-top: 20px;">特性说明</div>
+                    <div class="gold-card">
+                        <div class="gold-card-content" style="font-size: 0.9rem;">
+                            <p>• 默认只露出头像在右边界</p>
+                            <p>• 悬停/选中时整个卡片滑出</p>
+                            <p>• 选中时左侧显示箭头指示器</p>
+                            <p>• 左侧颜色条使用角色主题色</p>
+                            <p>• 已选择的角色显示玩家名（绿色脉冲）</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 12. 角色展示面板 -->
+        <div class="demo-section">
+            <h2 class="demo-section-title">12. 角色展示面板 (.char-showcase)</h2>
+            <div class="gold-card">
+                <h3 class="gold-card-title">📋 面板结构说明</h3>
+                <div class="gold-card-content">
+                    <p><strong>双层滑入动画：</strong>图片层先滑入，文字层0.3s后滑入</p>
+                    <p><strong>面板尺寸：</strong>92vw × 88vh，最大1800×950px，向下偏移30px</p>
+                    <br>
+                    <p><strong>布局结构：</strong></p>
+                    <ul style="margin-left: 20px; line-height: 2;">
+                        <li>左上角：魔法信息（类型、名称、描述、魔女化惩罚、限制、强化魔法、魔女化上限）</li>
+                        <li>左下角：角色名（第一个字放大+主题色，其余白色）</li>
+                        <li>左侧底部：棋子图标 + 头像（带注解标签）</li>
+                        <li>右上角：确认选择按钮</li>
+                        <li>右下角上方：交锋胜利特效（700×200px）</li>
+                        <li>右下角：三个状态立绘（正常/受击/魔女化，200×260px）</li>
+                        <li>底部：流动魔女化进度条（z-index: 10）</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="demo-code" style="margin-top: 20px;">&lt;div class="char-showcase" style="--char-color: #ffb6c1;"&gt;
+    &lt;!-- 图片层 - 背景封面 --&gt;
+    &lt;div class="char-showcase-bg active"&gt;
+        &lt;img src="角色封面图" alt="角色名"&gt;
+    &lt;/div&gt;
+    
+    &lt;!-- 文字层 --&gt;
+    &lt;div class="char-showcase-content active"&gt;
+        &lt;!-- 左上角 - 魔法信息 --&gt;
+        &lt;div class="char-showcase-magic"&gt;
+            &lt;div class="char-showcase-magic-header"&gt;
+                &lt;span class="char-showcase-magic-type active"&gt;主动&lt;/span&gt;
+                &lt;span class="char-showcase-magic-name"&gt;魔法名称&lt;/span&gt;
+            &lt;/div&gt;
+            &lt;div class="char-showcase-magic-desc"&gt;魔法描述...&lt;/div&gt;
+            &lt;div class="char-showcase-cost"&gt;
+                &lt;span&gt;💀&lt;/span&gt;
+                &lt;span class="char-showcase-cost-label"&gt;魔女化惩罚&lt;/span&gt;
+                &lt;span class="char-showcase-cost-value"&gt;+10&lt;/span&gt;
+            &lt;/div&gt;
+            &lt;div class="char-showcase-witch-limit"&gt;
+                &lt;span&gt;🔮&lt;/span&gt;
+                &lt;span class="char-showcase-witch-limit-label"&gt;魔女化上限&lt;/span&gt;
+                &lt;span class="char-showcase-witch-limit-value"&gt;100%&lt;/span&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+        
+        &lt;!-- 左下角 - 角色名 --&gt;
+        &lt;div class="char-showcase-name-area"&gt;
+            &lt;div class="char-showcase-name"&gt;
+                &lt;span class="char-showcase-name-first"&gt;艾&lt;/span&gt;
+                &lt;span class="char-showcase-name-rest"&gt;玛&lt;/span&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+        
+        &lt;!-- 左侧底部 - 棋子和头像 --&gt;
+        &lt;div class="char-showcase-left-icons"&gt;
+            &lt;div class="char-showcase-icon-wrapper"&gt;
+                &lt;img class="char-showcase-pin" src="棋子图" alt="棋子"&gt;
+                &lt;span class="char-showcase-icon-label"&gt;棋子&lt;/span&gt;
+            &lt;/div&gt;
+            &lt;div class="char-showcase-icon-wrapper"&gt;
+                &lt;img class="char-showcase-profile" src="头像图" alt="头像"&gt;
+                &lt;span class="char-showcase-icon-label"&gt;头像&lt;/span&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+        
+        &lt;!-- 右下角上方 - 胜利特效 --&gt;
+        &lt;div class="char-showcase-victory-wrapper"&gt;
+            &lt;img class="char-showcase-victory" src="胜利特效图" alt="胜利"&gt;
+            &lt;span class="char-showcase-victory-label"&gt;交锋胜利&lt;/span&gt;
+        &lt;/div&gt;
+        
+        &lt;!-- 右下角 - 角色状态图 --&gt;
+        &lt;div class="char-showcase-states"&gt;
+            &lt;div class="char-showcase-state"&gt;
+                &lt;div class="char-showcase-state-img"&gt;&lt;img src="正常状态图"&gt;&lt;/div&gt;
+                &lt;span class="char-showcase-state-label"&gt;正常状态&lt;/span&gt;
+            &lt;/div&gt;
+            &lt;div class="char-showcase-state"&gt;
+                &lt;div class="char-showcase-state-img"&gt;&lt;img src="受击状态图"&gt;&lt;/div&gt;
+                &lt;span class="char-showcase-state-label"&gt;受击状态&lt;/span&gt;
+            &lt;/div&gt;
+            &lt;div class="char-showcase-state"&gt;
+                &lt;div class="char-showcase-state-img"&gt;&lt;img src="魔女化状态图"&gt;&lt;/div&gt;
+                &lt;span class="char-showcase-state-label"&gt;魔女化&lt;/span&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+        
+        &lt;!-- 确认按钮 --&gt;
+        &lt;button class="char-showcase-confirm"&gt;确认选择&lt;/button&gt;
+    &lt;/div&gt;
+    
+    &lt;!-- 底部 - 魔女化进度条 --&gt;
+    &lt;div class="char-showcase-bar"&gt;
+        &lt;div class="char-showcase-bar-fill" style="background-image: linear-gradient(...);"&gt;&lt;/div&gt;
+    &lt;/div&gt;
+&lt;/div&gt;</div>
+        </div>
+
+        <!-- 13. 音效系统 -->
+        <div class="demo-section">
+            <h2 class="demo-section-title">13. 音效系统 (audio.js)</h2>
+            <div class="gold-card">
+                <h3 class="gold-card-title">🔊 音效配置</h3>
+                <div class="gold-card-content">
+                    <p><strong>UI音效：</strong></p>
+                    <ul style="margin-left: 20px; line-height: 1.8;">
+                        <li>悬停音效：music/EFFECT/Hat.wav</li>
+                        <li>主按钮点击：music/EFFECT/Bell.mp3</li>
+                        <li>次要按钮点击：music/EFFECT/hub_notification.mp3</li>
+                        <li>选择切换：music/EFFECT/808 CH_2.wav</li>
+                        <li>翻牌/角色卡片：music/EFFECT/flip.mp3</li>
+                    </ul>
+                    <br>
+                    <p><strong>角色介绍语音：</strong></p>
+                    <ul style="margin-left: 20px; line-height: 1.8;">
+                        <li>路径：music/Character_voice/Introduce/</li>
+                        <li>已有：Alisa.mp3, Anan.mp3</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="demo-code" style="margin-top: 20px;">// UI音效
+onmouseenter="playHoverSFX()"      // 悬停音效
+onclick="playMainClickSFX()"       // 主按钮点击（Bell）
+onclick="playSubClickSFX()"        // 次要按钮点击
+onclick="playSelectSFX()"          // 选择切换
+onclick="playFlipSFX()"            // 翻牌音效
+
+// 角色语音
+playCharacterVoice('arisa')        // 播放角色介绍语音
+stopCharacterVoice()               // 停止角色语音
+
+// 背景音乐切换
+playHubMusic()      // 主菜单音乐
+playCommonMusic()   // 普通游戏音乐
+playBattleMusic()   // 交锋音乐
+playWitchMusic()    // 魔女化音乐
+
+// 音量控制
+setBGMVolume(0.5)   // 设置背景音乐音量 (0-1)
+setSFXVolume(0.7)   // 设置音效音量 (0-1)
+toggleMute()        // 切换静音</div>
+        </div>
+
+        <!-- 14. CSS变量参考 -->
+        <div class="demo-section">
+            <h2 class="demo-section-title">14. CSS变量参考</h2>
+            <div class="gold-card">
+                <h3 class="gold-card-title">🎨 颜色变量</h3>
+                <div class="gold-card-content">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        <div><span style="color: #8b7355;">■</span> --gold-dark: #8b7355</div>
+                        <div><span style="color: #a08060;">■</span> --gold-medium: #a08060</div>
+                        <div><span style="color: #d4af37;">■</span> --gold-light: #d4af37</div>
+                        <div><span style="color: #8b1e32;">■</span> --red-primary: #8b1e32</div>
+                        <div><span style="color: #fff;">■</span> --white-primary: #fff</div>
+                        <div><span style="color: #ccc;">■</span> --text-secondary: #ccc</div>
+                        <div><span style="color: #888;">■</span> --text-muted: #888</div>
+                        <div><span style="color: #1a1a2e;">■</span> --bg-dark: #1a1a2e</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 15. 动画效果 -->
+        <div class="demo-section">
+            <h2 class="demo-section-title">15. 动画效果</h2>
+            <div class="gold-card">
+                <h3 class="gold-card-title">✨ 预定义动画</h3>
+                <div class="gold-card-content">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                        <div>
+                            <p><strong>greenPulse</strong> - 绿色脉冲（已选择玩家名）</p>
+                            <p style="color: #888; font-size: 0.9rem;">animation: greenPulse 1.5s ease-in-out infinite;</p>
+                        </div>
+                        <div>
+                            <p><strong>witchBarFlow</strong> - 魔女化进度条流动</p>
+                            <p style="color: #888; font-size: 0.9rem;">animation: witchBarFlow 3s linear infinite;</p>
+                        </div>
+                        <div>
+                            <p><strong>滑入动画</strong> - 角色展示面板</p>
+                            <p style="color: #888; font-size: 0.9rem;">.active 类触发 translateX(0) 滑入</p>
+                        </div>
+                        <div>
+                            <p><strong>滑出动画</strong> - 角色展示面板</p>
+                            <p style="color: #888; font-size: 0.9rem;">.slide-out 类触发 translateX(-100px) 滑出</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        function toggleNightMode() {
+            const btnSection = document.getElementById('btn-section');
+            btnSection.classList.toggle('night-mode');
+        }
+
+        function selectCircle(btn) {
+            document.querySelectorAll('.btn-circle').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+        }
+
+        function selectCard(card) {
+            document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+        }
+    </script>
+</body>
+</html>
