@@ -6182,9 +6182,11 @@ function playerWins(player) {
 }
 
 function playerLoses(player) {
-    // 玩家失败（被处刑），获得当前最低名次
-    const activePlayers = gameState.players.filter(p => !p.isEliminated);
-    player.rank = gameState.playerCount - (gameState.playerCount - activePlayers.length);
+    // 玩家失败（被处刑），获得当前最低名次（从后往前排）
+    // 计算已经失败的玩家数量
+    const defeatedCount = gameState.players.filter(p => p.isEliminated && p.rank > currentRank).length;
+    // 失败的玩家从最后一名开始往前排
+    player.rank = gameState.playerCount - defeatedCount;
     player.isEliminated = true;
     
     // 播放失败语音

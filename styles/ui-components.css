@@ -43,6 +43,26 @@
     /* 字体 */
     --font-serif: 'Noto Serif SC', serif;
     --font-sans: 'Microsoft YaHei', sans-serif;
+    
+    /* ===== 响应式缩放基准 ===== */
+    /* 基于视口宽度的缩放因子，1920px为基准 */
+    --scale: min(100vw / 1920, 100vh / 1080);
+    
+    /* 响应式字体大小 */
+    --font-xs: clamp(10px, calc(12 * var(--scale)), 14px);
+    --font-sm: clamp(12px, calc(14 * var(--scale)), 16px);
+    --font-base: clamp(14px, calc(16 * var(--scale)), 20px);
+    --font-lg: clamp(16px, calc(20 * var(--scale)), 26px);
+    --font-xl: clamp(20px, calc(28 * var(--scale)), 36px);
+    --font-2xl: clamp(24px, calc(36 * var(--scale)), 48px);
+    --font-3xl: clamp(32px, calc(48 * var(--scale)), 64px);
+    
+    /* 响应式间距 */
+    --space-xs: clamp(4px, calc(8 * var(--scale)), 12px);
+    --space-sm: clamp(8px, calc(12 * var(--scale)), 18px);
+    --space-md: clamp(12px, calc(20 * var(--scale)), 30px);
+    --space-lg: clamp(20px, calc(32 * var(--scale)), 48px);
+    --space-xl: clamp(32px, calc(48 * var(--scale)), 72px);
 }
 
 /* ========== 2. 暗金边框卡片 ========== */
@@ -174,18 +194,18 @@
 }
 
 
-/* ========== 4. 主按钮样式 ========== */
+/* ========== 4. 主按钮样式 - 响应式 ========== */
 .btn-primary {
     position: relative;
-    padding: 22px 60px;
+    padding: clamp(14px, 1.5vw, 22px) clamp(35px, 3.5vw, 60px);
     font-family: var(--font-serif);
-    font-size: 2.4rem;
+    font-size: clamp(1.5rem, 1.8vw, 2.4rem);
     font-weight: 700;
     color: var(--red-primary);
     background: rgba(0, 0, 0, 0.4);
     border: none;
     cursor: pointer;
-    letter-spacing: 10px;
+    letter-spacing: clamp(5px, 0.6vw, 10px);
     transition: all 0.3s ease;
     text-shadow: 
         0 0 15px var(--red-glow),
@@ -2110,39 +2130,39 @@
 .game-navbar-center {
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: clamp(10px, 1.2vw, 20px);
     font-family: var(--font-serif);
 }
 
 .game-round-info {
-    font-size: 1.7rem;
+    font-size: clamp(1.1rem, 1.2vw, 1.7rem);
     font-weight: 700;
     color: var(--gold-light);
     text-shadow: 
         0 0 20px var(--gold-glow),
         0 0 40px rgba(212, 175, 55, 0.3);
-    letter-spacing: 3px;
+    letter-spacing: clamp(1px, 0.2vw, 3px);
 }
 
 .game-round-divider {
     color: var(--gold-medium);
-    font-size: 1.8rem;
+    font-size: clamp(1.2rem, 1.3vw, 1.8rem);
     text-shadow: 0 0 10px var(--gold-glow);
 }
 
 .game-navbar-right {
     display: flex;
     align-items: center;
-    gap: 25px;
-    margin-right: 80px; /* 往左移，避免被音乐播放器挡住 */
+    gap: clamp(12px, 1.5vw, 25px);
+    margin-right: clamp(40px, 5vw, 80px); /* 往左移，避免被音乐播放器挡住 */
 }
 
 .game-time {
     font-family: var(--font-serif);
-    font-size: 1.2rem;
+    font-size: clamp(0.9rem, 0.9vw, 1.2rem);
     font-weight: 600;
     color: var(--gold-light);
-    padding: 10px 22px;
+    padding: clamp(6px, 0.6vw, 10px) clamp(12px, 1.3vw, 22px);
     background: linear-gradient(135deg, rgba(139, 115, 85, 0.2), rgba(139, 115, 85, 0.1));
     border: 2px solid rgba(139, 115, 85, 0.4);
     border-radius: 25px;
@@ -2353,20 +2373,20 @@
     pointer-events: none;
 }
 
-/* 棋盘网格 */
+/* 棋盘网格 - 响应式 */
 .board-grid {
     display: grid;
-    grid-template-columns: repeat(6, 100px);
-    grid-template-rows: repeat(6, 100px);
-    gap: 8px;
+    grid-template-columns: repeat(6, clamp(60px, 5.2vw, 100px));
+    grid-template-rows: repeat(6, clamp(60px, 5.2vw, 100px));
+    gap: clamp(4px, 0.4vw, 8px);
     position: relative;
     z-index: 1;
 }
 
-/* 棋盘格子基础样式 */
+/* 棋盘格子基础样式 - 响应式 */
 .grid-cell {
-    width: 100px;
-    height: 100px;
+    width: clamp(60px, 5.2vw, 100px);
+    height: clamp(60px, 5.2vw, 100px);
     border-radius: 10px;
     display: flex;
     flex-direction: column;
@@ -2848,9 +2868,9 @@
     margin-top: 4px;
 }
 
-/* ===== 角色卡片（新布局 - 华丽大气版 1.5倍宽） ===== */
+/* ===== 角色卡片（新布局 - 华丽大气版 响应式） ===== */
 .player-card {
-    width: 520px;
+    width: clamp(320px, 27vw, 520px);
     background: linear-gradient(145deg, rgba(30, 25, 20, 0.92), rgba(15, 12, 8, 0.95));
     border: 3px solid var(--gold-dark);
     border-radius: 16px;
@@ -3813,11 +3833,11 @@
     color: var(--gold-light);
 }
 
-/* ===== 用户控制台（华丽版 - 可折叠） ===== */
+/* ===== 用户控制台（华丽版 - 紧凑设计） ===== */
 .user-console {
     background: linear-gradient(180deg, rgba(20, 15, 10, 0.95), rgba(10, 8, 5, 0.98));
     border-top: 3px solid var(--gold-dark);
-    padding: 20px 50px 25px;
+    padding: clamp(8px, 1vh, 15px) clamp(20px, 3vw, 50px);
     box-shadow: 
         0 -8px 40px rgba(0, 0, 0, 0.6),
         inset 0 2px 0 rgba(212, 175, 55, 0.15);
@@ -3878,26 +3898,25 @@
 .user-player-card-wrapper {
     display: flex;
     justify-content: center;
-    margin-bottom: 20px;
     position: relative;
     z-index: 100;
     overflow: visible;
 }
 
-/* 玩家自己的卡片（横向布局，更紧凑） */
+/* 玩家自己的卡片（横向布局，紧凑版） */
 .user-player-card {
     display: flex;
     align-items: stretch;
     background: linear-gradient(145deg, rgba(30, 25, 20, 0.95), rgba(15, 12, 8, 0.98));
-    border: 3px solid var(--gold-dark);
-    border-radius: 16px;
+    border: 2px solid var(--gold-dark);
+    border-radius: 12px;
     overflow: visible;
     box-shadow: 
-        inset 0 0 40px rgba(139, 115, 85, 0.15),
-        0 8px 40px rgba(0, 0, 0, 0.7),
-        0 0 60px rgba(139, 115, 85, 0.1);
+        inset 0 0 30px rgba(139, 115, 85, 0.15),
+        0 6px 30px rgba(0, 0, 0, 0.7),
+        0 0 40px rgba(139, 115, 85, 0.1);
     transition: all 0.3s ease;
-    max-width: 900px;
+    max-width: clamp(500px, 50vw, 800px);
     width: 100%;
 }
 
@@ -3958,10 +3977,10 @@
     filter: grayscale(1);
 }
 
-/* 玩家卡片 - 立绘区域 */
+/* 玩家卡片 - 立绘区域（紧凑版） */
 .user-card-portrait {
-    width: 100px;
-    height: 130px;
+    width: clamp(60px, 5vw, 80px);
+    height: clamp(80px, 7vh, 100px);
     flex-shrink: 0;
     overflow: hidden;
     border-right: 2px solid rgba(139, 115, 85, 0.4);
@@ -3976,15 +3995,15 @@
     object-position: top center;
 }
 
-/* 玩家卡片 - 头像区域（圆形） */
+/* 玩家卡片 - 头像区域（圆形，紧凑版） */
 .user-card-avatar {
-    width: 80px;
-    height: 80px;
+    width: clamp(50px, 4vw, 70px);
+    height: clamp(50px, 4vw, 70px);
     flex-shrink: 0;
     border-radius: 50%;
     overflow: hidden;
-    border: 3px solid var(--gold-dark);
-    margin: auto 15px;
+    border: 2px solid var(--gold-dark);
+    margin: auto clamp(8px, 1vw, 15px);
     box-shadow: 
         0 4px 15px rgba(0, 0, 0, 0.5),
         inset 0 0 15px rgba(0, 0, 0, 0.3);
@@ -3996,13 +4015,13 @@
     object-fit: cover;
 }
 
-/* 玩家卡片 - 信息区域 */
+/* 玩家卡片 - 信息区域（紧凑版） */
 .user-card-info {
     display: flex;
     flex-direction: column;
-    padding: 12px 18px;
-    gap: 8px;
-    min-width: 200px;
+    padding: clamp(6px, 0.8vh, 10px) clamp(10px, 1vw, 18px);
+    gap: clamp(2px, 0.4vh, 6px);
+    min-width: clamp(120px, 12vw, 180px);
     border-right: 2px solid rgba(139, 115, 85, 0.4);
     position: relative;
     cursor: pointer;
@@ -4016,24 +4035,24 @@
 /* 玩家名（小字） */
 .user-card-player-name {
     font-family: var(--font-serif);
-    font-size: 0.8rem;
+    font-size: clamp(0.6rem, 0.7vw, 0.8rem);
     color: var(--text-muted);
     letter-spacing: 1px;
-    margin-bottom: 2px;
+    margin-bottom: 1px;
 }
 
 /* 角色名（大字） */
 .user-card-char-name {
     font-family: var(--font-serif);
-    font-size: 1.15rem;
+    font-size: clamp(0.9rem, 1vw, 1.15rem);
     font-weight: 700;
     letter-spacing: 2px;
     text-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
-    margin-bottom: 4px;
+    margin-bottom: 2px;
 }
 
 .user-card-char-name .char-name-first {
-    font-size: 1.2em;
+    font-size: 1.1em;
     font-weight: 900;
 }
 
@@ -4043,7 +4062,7 @@
 
 .user-card-magic-name {
     font-family: var(--font-serif);
-    font-size: 1rem;
+    font-size: clamp(0.8rem, 0.85vw, 1rem);
     color: var(--gold-light);
     text-shadow: 0 0 10px var(--gold-glow);
 }
@@ -4231,12 +4250,13 @@
     flex-wrap: wrap;
 }
 
-/* 可折叠内容区域 */
+/* 可折叠内容区域（只包含玩家卡片） */
 .console-collapsible {
-    max-height: 500px;
+    max-height: 200px;
     overflow: visible;
     transition: max-height 0.4s ease, opacity 0.3s ease, margin 0.4s ease;
     opacity: 1;
+    margin-bottom: clamp(8px, 1vh, 15px);
 }
 
 .user-console.collapsed .console-collapsible {
@@ -4250,16 +4270,15 @@
 
 .user-console.collapsed {
     padding-top: 25px;
-    padding-bottom: 15px;
 }
 
-/* 玩家魔女化进度 - 更大更华丽 */
+/* 玩家魔女化进度（紧凑版） */
 .user-witch-bar {
-    height: 18px;
+    height: clamp(10px, 1.2vh, 16px);
     background: linear-gradient(180deg, rgba(0, 0, 0, 0.8), rgba(20, 15, 10, 0.9));
-    border-radius: 10px;
+    border-radius: 8px;
     overflow: visible;
-    margin-bottom: 25px;
+    margin-bottom: clamp(8px, 1vh, 18px);
     position: relative;
     border: 2px solid rgba(139, 115, 85, 0.4);
     box-shadow: 
@@ -4299,41 +4318,41 @@
     gap: 2px;
 }
 
-/* 控制台主体 */
+/* 控制台主体（紧凑版） */
 .user-console-main {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 40px;
+    gap: clamp(15px, 2vw, 40px);
 }
 
-/* 手牌区域 */
+/* 手牌区域（紧凑版） */
 .user-hand-area {
     flex: 1;
     display: flex;
     align-items: center;
-    gap: 25px;
+    gap: clamp(10px, 1.5vw, 25px);
 }
 
 .hand-label {
     font-family: var(--font-serif);
-    font-size: 1.4rem;
+    font-size: clamp(1rem, 1.1vw, 1.4rem);
     font-weight: 700;
     color: var(--gold-light);
     white-space: nowrap;
-    letter-spacing: 3px;
+    letter-spacing: 2px;
     text-shadow: 0 0 15px var(--gold-glow);
 }
 
 .user-hand-cards {
     display: flex;
-    gap: 15px;
+    gap: clamp(8px, 0.8vw, 15px);
 }
 
-/* 手牌卡片 - 更大更华丽 */
+/* 手牌卡片 - 响应式 */
 .hand-card {
-    width: 80px;
-    height: 108px;
+    width: clamp(50px, 4.2vw, 80px);
+    height: clamp(68px, 5.6vw, 108px);
     background: linear-gradient(145deg, rgba(30, 25, 20, 0.95), rgba(15, 12, 8, 0.98));
     border: 3px solid var(--gold-dark);
     border-radius: 12px;
@@ -4341,7 +4360,7 @@
     align-items: center;
     justify-content: center;
     font-family: var(--font-serif);
-    font-size: 2.4rem;
+    font-size: clamp(1.5rem, 2vw, 2.4rem);
     font-weight: 700;
     color: var(--gold-light);
     cursor: pointer;
@@ -4576,10 +4595,10 @@
         inset 0 0 30px rgba(155, 89, 182, 0.2);
 }
 
-/* ===== 行动提示栏（华丽版） ===== */
+/* ===== 行动提示栏（紧凑版） ===== */
 .action-prompt-bar {
     background: linear-gradient(180deg, rgba(15, 12, 8, 0.95), rgba(10, 8, 5, 0.98));
-    padding: 20px 50px;
+    padding: clamp(8px, 1vh, 15px) clamp(20px, 3vw, 50px);
     text-align: center;
     border-top: 2px solid var(--gold-dark);
     box-shadow: 
@@ -4592,7 +4611,7 @@
 .action-prompt-bar::before {
     content: '◆';
     position: absolute;
-    left: 30px;
+    left: clamp(15px, 2vw, 30px);
     top: 50%;
     transform: translateY(-50%);
     color: var(--gold-medium);
@@ -4603,7 +4622,7 @@
 .action-prompt-bar::after {
     content: '◆';
     position: absolute;
-    right: 30px;
+    right: clamp(15px, 2vw, 30px);
     top: 50%;
     transform: translateY(-50%);
     color: var(--gold-medium);
@@ -4613,9 +4632,9 @@
 
 .action-prompt-text {
     font-family: var(--font-serif);
-    font-size: 1.6rem;
+    font-size: clamp(1rem, 1.2vw, 1.6rem);
     font-weight: 700;
-    letter-spacing: 4px;
+    letter-spacing: clamp(2px, 0.3vw, 4px);
     color: var(--gold-light);
     text-shadow: 
         0 0 20px var(--gold-glow),

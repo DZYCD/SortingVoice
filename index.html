@@ -21,6 +21,8 @@
             min-height: 100vh;
             color: #fff;
             overflow-x: hidden;
+            /* 响应式基础字体 */
+            font-size: clamp(14px, 1.1vw, 18px);
         }
 
         /* 通用隐藏类 */
@@ -2678,38 +2680,39 @@
                     <span class="toggle-icon">▼</span>
                 </button>
                 
-                <!-- 可折叠内容区域（包含玩家卡片） -->
+                <!-- 可折叠内容区域（只包含玩家卡片） -->
                 <div class="console-collapsible" id="console-collapsible">
                     <!-- 玩家自己的卡片 -->
                     <div class="user-player-card-wrapper" id="user-player-card-wrapper">
                         <!-- 玩家卡片由JS动态生成 -->
                     </div>
-                    
-                    <!-- 玩家魔女化进度 -->
-                    <div class="user-witch-bar">
-                        <div class="user-witch-fill" id="user-witch-fill" style="width: 0%;"></div>
-                        <span class="user-witch-label" id="user-witch-label">0%</span>
+                </div>
+                
+                <!-- 以下内容不折叠 -->
+                <!-- 玩家魔女化进度 -->
+                <div class="user-witch-bar">
+                    <div class="user-witch-fill" id="user-witch-fill" style="width: 0%;"></div>
+                    <span class="user-witch-label" id="user-witch-label">0%</span>
+                </div>
+
+                <!-- 控制台主体 -->
+                <div class="user-console-main">
+                    <!-- 手牌区域 -->
+                    <div class="user-hand-area">
+                        <span class="hand-label">手牌</span>
+                        <div class="user-hand-cards" id="user-hand-cards">
+                            <!-- 手牌由JS动态生成 -->
+                        </div>
                     </div>
 
-                    <!-- 控制台主体 -->
-                    <div class="user-console-main">
-                        <!-- 手牌区域 -->
-                        <div class="user-hand-area">
-                            <span class="hand-label">手牌</span>
-                            <div class="user-hand-cards" id="user-hand-cards">
-                                <!-- 手牌由JS动态生成 -->
-                            </div>
-                        </div>
-
-                        <!-- 操作按钮 -->
-                        <div class="user-controls" id="user-controls">
-                            <button class="btn-cast-magic" id="btn-cast-magic" onclick="castMagic()">
-                                <span>🌟</span>
-                                <span>发动魔法</span>
-                                <span class="magic-cd-badge" id="magic-cd-badge">就绪</span>
-                            </button>
-                            <!-- 被动开关和里世界按钮由JS根据角色动态添加 -->
-                        </div>
+                    <!-- 操作按钮 -->
+                    <div class="user-controls" id="user-controls">
+                        <button class="btn-cast-magic" id="btn-cast-magic" onclick="castMagic()">
+                            <span>🌟</span>
+                            <span>发动魔法</span>
+                            <span class="magic-cd-badge" id="magic-cd-badge">就绪</span>
+                        </button>
+                        <!-- 被动开关和里世界按钮由JS根据角色动态添加 -->
                     </div>
                 </div>
             </div>

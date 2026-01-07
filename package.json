@@ -1,0 +1,39 @@
+{
+  "name": "witch-trial-eve",
+  "version": "1.0.0",
+  "description": "魔法少女的审判前夜 - 桌游改编网页游戏",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win",
+    "build:dir": "electron-builder --win --dir"
+  },
+  "build": {
+    "appId": "com.dzycd.witchtrial",
+    "productName": "魔法少女的审判前夜",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "portable",
+      "icon": "icon/Profile_Ema.png"
+    },
+    "files": [
+      "**/*",
+      "!dist/**",
+      "!node_modules/.cache/**",
+      "!*.md",
+      "!compress_assets.py"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DZYCD/SortingVoice.git"
+  },
+  "author": "DZYCD",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^39.2.7",
+    "electron-builder": "^26.4.0"
+  }
+}
