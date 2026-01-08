@@ -23,7 +23,12 @@ let networkState = {
     players: {},            // 房间内玩家 { oderId: { id, name, ready, character } }
     pendingCallbacks: {},   // 等待响应的回调 { requestId: { callback, timeout } }
     reconnectAttempts: 0,
-    maxReconnectAttempts: 3
+    maxReconnectAttempts: 5,
+    reconnectDelay: 2000,   // 重连延迟（毫秒）
+    isReconnecting: false,  // 是否正在重连
+    lastGameState: null,    // 断线前的游戏状态（用于重连恢复）
+    heartbeatInterval: null,// 心跳定时器
+    lastHeartbeat: 0        // 最后心跳时间
 };
 
 // ========== 生成房间码 ==========
@@ -51,6 +56,7 @@ async function connectMQTT() {
     return new Promise((resolve, reject) => {
         const broker = MQTT_CONFIG.brokers[MQTT_CONFIG.currentBrokerIndex];
         console.log(`[MQTT] 正在连接 ${broker.name}...`);
+        updateConnectionStatus('connecting', `正在连接 ${broker.name}...`);
         
         const clientId = 'witch_' + Math.random().toString(16).substr(2, 8);
         
@@ -59,25 +65,42 @@ async function connectMQTT() {
                 clientId: clientId,
                 clean: true,
                 connectTimeout: 10000,
-                reconnectPeriod: 0  // 禁用自动重连，我们手动处理
+                reconnectPeriod: 0,  // 禁用自动重连，我们手动处理
+                keepalive: 30        // 30秒心跳
             });
             
             networkState.client.on('connect', () => {
                 console.log('[MQTT] 连接成功');
                 networkState.connected = true;
                 networkState.reconnectAttempts = 0;
+                networkState.isReconnecting = false;
+                updateConnectionStatus('connected', '已连接');
+                startHeartbeat();
                 resolve();
             });
             
             networkState.client.on('error', (err) => {
                 console.error('[MQTT] 连接错误:', err);
                 networkState.connected = false;
+                updateConnectionStatus('error', '连接错误');
                 reject(err);
             });
             
             networkState.client.on('close', () => {
                 console.log('[MQTT] 连接关闭');
                 networkState.connected = false;
+                stopHeartbeat();
+                
+                // 如果在游戏中且不是主动断开，尝试重连
+                if (networkState.mode === 'online' && networkState.roomCode && !networkState.isReconnecting) {
+                    handleDisconnect();
+                }
+            });
+            
+            networkState.client.on('offline', () => {
+                console.log('[MQTT] 离线');
+                networkState.connected = false;
+                updateConnectionStatus('offline', '离线');
             });
             
             networkState.client.on('message', (topic, message) => {
@@ -88,6 +111,217 @@ async function connectMQTT() {
             reject(err);
         }
     });
+}
+
+// ========== 断线处理 ==========
+function handleDisconnect() {
+    if (networkState.isReconnecting) return;
+    
+    networkState.isReconnecting = true;
+    console.log('[MQTT] 检测到断线，准备重连...');
+    updateConnectionStatus('reconnecting', '连接断开，正在重连...');
+    
+    // 显示重连提示UI
+    showReconnectingUI();
+    
+    // 保存当前游戏状态
+    if (typeof gameState !== 'undefined') {
+        networkState.lastGameState = getSerializableGameState();
+    }
+    
+    attemptReconnect();
+}
+
+// ========== 尝试重连 ==========
+async function attemptReconnect() {
+    if (networkState.reconnectAttempts >= networkState.maxReconnectAttempts) {
+        console.log('[MQTT] 重连次数已达上限');
+        updateConnectionStatus('failed', '重连失败');
+        showReconnectFailedUI();
+        networkState.isReconnecting = false;
+        return;
+    }
+    
+    networkState.reconnectAttempts++;
+    const attempt = networkState.reconnectAttempts;
+    console.log(`[MQTT] 第 ${attempt}/${networkState.maxReconnectAttempts} 次重连尝试...`);
+    updateConnectionStatus('reconnecting', `重连中 (${attempt}/${networkState.maxReconnectAttempts})...`);
+    
+    try {
+        // 先断开旧连接
+        if (networkState.client) {
+            networkState.client.end(true);
+            networkState.client = null;
+        }
+        
+        // 尝试切换broker
+        if (attempt > 1 && attempt % 2 === 0) {
+            MQTT_CONFIG.currentBrokerIndex = (MQTT_CONFIG.currentBrokerIndex + 1) % MQTT_CONFIG.brokers.length;
+            console.log(`[MQTT] 切换到备用服务器: ${MQTT_CONFIG.brokers[MQTT_CONFIG.currentBrokerIndex].name}`);
+        }
+        
+        // 等待一段时间后重连
+        await new Promise(resolve => setTimeout(resolve, networkState.reconnectDelay));
+        
+        // 重新连接
+        await connectMQTT();
+        
+        // 重新订阅房间
+        if (networkState.roomCode) {
+            subscribeToRoom();
+            
+            // 发送重连消息
+            sendMessage('reconnect', {
+                playerId: networkState.localPlayerId,
+                isHost: networkState.isHost
+            }, 'room');
+            
+            // 如果是房主，广播当前状态；否则请求状态同步
+            if (networkState.isHost) {
+                setTimeout(() => {
+                    broadcastGameState();
+                }, 500);
+            } else {
+                requestStateSync();
+            }
+        }
+        
+        console.log('[MQTT] 重连成功');
+        hideReconnectingUI();
+        networkState.isReconnecting = false;
+        
+    } catch (err) {
+        console.error(`[MQTT] 第 ${attempt} 次重连失败:`, err);
+        
+        // 继续尝试
+        setTimeout(() => {
+            attemptReconnect();
+        }, networkState.reconnectDelay);
+    }
+}
+
+// ========== 请求状态同步 ==========
+function requestStateSync() {
+    sendMessage('request_sync', {
+        playerId: networkState.localPlayerId
+    }, 'room');
+}
+
+// ========== 心跳机制 ==========
+function startHeartbeat() {
+    stopHeartbeat();
+    networkState.lastHeartbeat = Date.now();
+    
+    networkState.heartbeatInterval = setInterval(() => {
+        if (networkState.connected && networkState.roomCode) {
+            sendMessage('heartbeat', {
+                playerId: networkState.localPlayerId,
+                timestamp: Date.now()
+            }, 'room');
+            networkState.lastHeartbeat = Date.now();
+        }
+    }, 15000); // 每15秒发送心跳
+}
+
+function stopHeartbeat() {
+    if (networkState.heartbeatInterval) {
+        clearInterval(networkState.heartbeatInterval);
+        networkState.heartbeatInterval = null;
+    }
+}
+
+// ========== 连接状态UI更新 ==========
+function updateConnectionStatus(status, message) {
+    const statusEl = document.getElementById('connection-status');
+    if (statusEl) {
+        statusEl.className = `connection-status ${status}`;
+        statusEl.textContent = message;
+        statusEl.style.display = 'block';
+    }
+    
+    // 触发自定义事件
+    window.dispatchEvent(new CustomEvent('connectionStatusChange', {
+        detail: { status, message }
+    }));
+}
+
+// ========== 重连UI ==========
+function showReconnectingUI() {
+    let overlay = document.getElementById('reconnect-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'reconnect-overlay';
+        overlay.innerHTML = `
+            <div class="reconnect-content">
+                <div class="reconnect-spinner"></div>
+                <div class="reconnect-text">连接断开，正在重连...</div>
+                <div class="reconnect-attempts" id="reconnect-attempts"></div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+    }
+    overlay.style.display = 'flex';
+}
+
+function hideReconnectingUI() {
+    const overlay = document.getElementById('reconnect-overlay');
+    if (overlay) {
+        overlay.style.display = 'none';
+    }
+}
+
+function showReconnectFailedUI() {
+    let overlay = document.getElementById('reconnect-overlay');
+    if (overlay) {
+        overlay.innerHTML = `
+            <div class="reconnect-content">
+                <div class="reconnect-failed-icon">❌</div>
+                <div class="reconnect-text">重连失败</div>
+                <div class="reconnect-buttons">
+                    <button class="btn-confirm" onclick="manualReconnect()">重试</button>
+                    <button class="btn-confirm" onclick="returnToMenu()">返回菜单</button>
+                </div>
+            </div>
+        `;
+    }
+}
+
+// ========== 手动重连 ==========
+async function manualReconnect() {
+    networkState.reconnectAttempts = 0;
+    networkState.isReconnecting = false;
+    
+    const overlay = document.getElementById('reconnect-overlay');
+    if (overlay) {
+        overlay.innerHTML = `
+            <div class="reconnect-content">
+                <div class="reconnect-spinner"></div>
+                <div class="reconnect-text">正在重连...</div>
+            </div>
+        `;
+    }
+    
+    attemptReconnect();
+}
+
+// ========== 返回菜单 ==========
+function returnToMenu() {
+    hideReconnectingUI();
+    disconnectMQTT();
+    
+    // 重置网络状态
+    networkState.mode = 'local';
+    networkState.isHost = false;
+    networkState.localPlayerId = null;
+    networkState.roomCode = null;
+    networkState.players = {};
+    networkState.isReconnecting = false;
+    networkState.reconnectAttempts = 0;
+    
+    // 返回主菜单
+    if (typeof showScreen === 'function') {
+        showScreen('menu-screen');
+    }
 }
 
 // ========== 断开MQTT ==========
@@ -268,6 +502,15 @@ function handleMQTTMessage(topic, messageStr) {
             case 'game_start':
                 handleGameStart(message);
                 break;
+            case 'reconnect':
+                handlePlayerReconnect(message);
+                break;
+            case 'request_sync':
+                handleSyncRequest(message);
+                break;
+            case 'heartbeat':
+                handleHeartbeat(message);
+                break;
                 
             // ===== 游戏操作 =====
             case 'play_card':
@@ -414,6 +657,83 @@ function handleGameStart(message) {
     if (typeof startOnlineGame === 'function') {
         startOnlineGame(message.gameState);
     }
+}
+
+// 处理玩家重连
+function handlePlayerReconnect(message) {
+    console.log(`[房间] 玩家 ${message.playerId} 重连`);
+    
+    // 更新玩家在线状态
+    if (networkState.players[message.playerId]) {
+        networkState.players[message.playerId].online = true;
+        networkState.players[message.playerId].lastSeen = Date.now();
+    }
+    
+    // 房主发送当前状态给重连玩家
+    if (networkState.isHost) {
+        setTimeout(() => {
+            broadcastGameState();
+        }, 300);
+    }
+    
+    if (typeof updateRoomUI === 'function') {
+        updateRoomUI();
+    }
+    
+    // 显示重连提示
+    if (typeof showToast === 'function') {
+        const playerName = networkState.players[message.playerId]?.name || `玩家${message.playerId}`;
+        showToast(`${playerName} 已重连`);
+    }
+}
+
+// 处理状态同步请求（房主处理）
+function handleSyncRequest(message) {
+    if (!networkState.isHost) return;
+    
+    console.log(`[房间] 玩家 ${message.playerId} 请求状态同步`);
+    broadcastGameState();
+}
+
+// 处理心跳
+function handleHeartbeat(message) {
+    // 更新玩家最后活跃时间
+    if (networkState.players[message.playerId]) {
+        networkState.players[message.playerId].lastSeen = message.timestamp;
+        networkState.players[message.playerId].online = true;
+    }
+    
+    // 房主检查离线玩家
+    if (networkState.isHost) {
+        checkOfflinePlayers();
+    }
+}
+
+// 检查离线玩家（房主用）
+function checkOfflinePlayers() {
+    const now = Date.now();
+    const offlineThreshold = 45000; // 45秒无心跳视为离线
+    
+    Object.keys(networkState.players).forEach(playerId => {
+        const player = networkState.players[playerId];
+        if (parseInt(playerId) === networkState.localPlayerId) return; // 跳过自己
+        
+        if (player.lastSeen && (now - player.lastSeen) > offlineThreshold) {
+            if (player.online !== false) {
+                player.online = false;
+                console.log(`[房间] 玩家 ${playerId} 可能离线`);
+                
+                // 广播玩家离线状态
+                sendMessage('player_offline', {
+                    playerId: parseInt(playerId)
+                }, 'room');
+                
+                if (typeof updateRoomUI === 'function') {
+                    updateRoomUI();
+                }
+            }
+        }
+    });
 }
 
 // ========== 游戏操作消息处理 ==========
@@ -612,3 +932,6 @@ window.isMyTurn = isMyTurn;
 window.getLocalPlayer = getLocalPlayer;
 window.sendPassiveRequest = sendPassiveRequest;
 window.sendPassiveResponse = sendPassiveResponse;
+window.manualReconnect = manualReconnect;
+window.returnToMenu = returnToMenu;
+window.requestStateSync = requestStateSync;

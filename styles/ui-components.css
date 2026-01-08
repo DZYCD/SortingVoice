@@ -6672,3 +6672,141 @@
     background: linear-gradient(90deg, #9b59b6, #e94560);
     transition: width 0.3s ease;
 }
+
+
+/* ========== 网络连接状态 ========== */
+.connection-status {
+    position: fixed;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    z-index: 10000;
+    display: none;
+    transition: all 0.3s ease;
+}
+
+.connection-status.connecting {
+    background: rgba(241, 196, 15, 0.9);
+    color: #000;
+}
+
+.connection-status.connected {
+    background: rgba(46, 204, 113, 0.9);
+    color: #fff;
+    animation: fadeOutDelay 3s forwards;
+}
+
+.connection-status.reconnecting {
+    background: rgba(230, 126, 34, 0.9);
+    color: #fff;
+    animation: pulse 1s infinite;
+}
+
+.connection-status.error,
+.connection-status.failed {
+    background: rgba(231, 76, 60, 0.9);
+    color: #fff;
+}
+
+.connection-status.offline {
+    background: rgba(149, 165, 166, 0.9);
+    color: #fff;
+}
+
+@keyframes fadeOutDelay {
+    0%, 70% { opacity: 1; }
+    100% { opacity: 0; display: none; }
+}
+
+/* ========== 重连遮罩层 ========== */
+#reconnect-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 99999;
+    backdrop-filter: blur(5px);
+}
+
+.reconnect-content {
+    text-align: center;
+    padding: 40px 60px;
+    background: var(--bg-dark);
+    border: 2px solid var(--gold-dark);
+    border-radius: 15px;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+}
+
+.reconnect-spinner {
+    width: 60px;
+    height: 60px;
+    border: 4px solid rgba(212, 175, 55, 0.3);
+    border-top-color: var(--gold-light);
+    border-radius: 50%;
+    margin: 0 auto 20px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.reconnect-text {
+    font-family: var(--font-serif);
+    font-size: 1.4rem;
+    color: var(--text-primary);
+    margin-bottom: 15px;
+}
+
+.reconnect-attempts {
+    font-size: 1rem;
+    color: var(--text-muted);
+}
+
+.reconnect-failed-icon {
+    font-size: 4rem;
+    margin-bottom: 20px;
+}
+
+.reconnect-buttons {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    margin-top: 25px;
+}
+
+.reconnect-buttons .btn-confirm {
+    padding: 12px 30px;
+    font-size: 1.1rem;
+}
+
+/* ========== 玩家在线状态指示 ========== */
+.player-online-status {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 5px;
+}
+
+.player-online-status.online {
+    background: #2ecc71;
+    box-shadow: 0 0 8px #2ecc71;
+}
+
+.player-online-status.offline {
+    background: #95a5a6;
+}
+
+.player-online-status.reconnecting {
+    background: #f39c12;
+    animation: pulse 1s infinite;
+}
