@@ -546,6 +546,14 @@
     color: var(--text-secondary);
 }
 
+.settings-hint {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed rgba(139, 115, 85, 0.2);
+}
+
 .settings-slider {
     display: flex;
     align-items: center;
@@ -2373,21 +2381,21 @@
     pointer-events: none;
 }
 
-/* 棋盘网格 - 响应式 */
+/* 棋盘网格 - 响应式（缩小20%） */
 .board-grid {
     display: grid;
-    grid-template-columns: repeat(6, clamp(60px, 5.2vw, 100px));
-    grid-template-rows: repeat(6, clamp(60px, 5.2vw, 100px));
-    gap: clamp(4px, 0.4vw, 8px);
+    grid-template-columns: repeat(6, clamp(48px, 4.2vw, 80px));
+    grid-template-rows: repeat(6, clamp(48px, 4.2vw, 80px));
+    gap: clamp(3px, 0.3vw, 6px);
     position: relative;
     z-index: 1;
 }
 
-/* 棋盘格子基础样式 - 响应式 */
+/* 棋盘格子基础样式 - 响应式（缩小20%） */
 .grid-cell {
-    width: clamp(60px, 5.2vw, 100px);
-    height: clamp(60px, 5.2vw, 100px);
-    border-radius: 10px;
+    width: clamp(48px, 4.2vw, 80px);
+    height: clamp(48px, 4.2vw, 80px);
+    border-radius: 8px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -2424,26 +2432,29 @@
     display: none;
 }
 
-/* 装饰格子 */
+/* 装饰格子 - 蓝灰色统一样式 */
 .grid-cell.decoration {
     cursor: default;
-    border: 1px dashed rgba(139, 115, 85, 0.2);
-    border-radius: 12px;
-    opacity: 0.7;
+    background: linear-gradient(145deg, #4a5568 0%, #2d3748 50%, #1a202c 100%);
+    border: 1px solid rgba(74, 85, 104, 0.4);
+    border-radius: 8px;
+    opacity: 0.6;
+    box-shadow: 
+        inset 0 -2px 6px rgba(0, 0, 0, 0.3),
+        inset 0 1px 3px rgba(255, 255, 255, 0.05);
 }
 
 .grid-cell.decoration::before {
     display: none;
 }
 
+/* 隐藏装饰格子的emoji */
 .decoration-emoji {
-    font-size: 2rem;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-    opacity: 0.8;
+    display: none;
 }
 
 .grid-cell.decoration:hover {
-    opacity: 0.9;
+    opacity: 0.7;
     transform: none;
     box-shadow: none;
 }
@@ -3894,12 +3905,12 @@
     transform: rotate(180deg);
 }
 
-/* 玩家自己的卡片容器 */
+/* 玩家自己的卡片容器 - 固定左侧浮动 */
 .user-player-card-wrapper {
     display: flex;
-    justify-content: center;
+    justify-content: flex-start;
     position: relative;
-    z-index: 100;
+    z-index: 200;
     overflow: visible;
 }
 
@@ -4250,26 +4261,30 @@
     flex-wrap: wrap;
 }
 
-/* 可折叠内容区域（只包含玩家卡片） */
+/* 可折叠内容区域（只包含玩家卡片）- 浮动在控制台上方 */
 .console-collapsible {
+    position: absolute;
+    left: clamp(15px, 2vw, 30px);
+    bottom: 100%;
+    margin-bottom: 10px;
     max-height: 200px;
     overflow: visible;
-    transition: max-height 0.4s ease, opacity 0.3s ease, margin 0.4s ease;
+    transition: max-height 0.4s ease, opacity 0.3s ease, transform 0.3s ease;
     opacity: 1;
-    margin-bottom: clamp(8px, 1vh, 15px);
+    z-index: 200;
 }
 
 .user-console.collapsed .console-collapsible {
     max-height: 0;
     opacity: 0;
-    margin-top: 0;
-    margin-bottom: 0;
     overflow: hidden;
     pointer-events: none;
+    transform: translateY(20px);
 }
 
 .user-console.collapsed {
-    padding-top: 25px;
+    /* 折叠时样式保持不变 */
+    padding-top: clamp(8px, 1vh, 15px);
 }
 
 /* 玩家魔女化进度（紧凑版） */

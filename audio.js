@@ -61,6 +61,77 @@ const audioState = {
     isWitchFiltered: false     // 是否处于魔女化滤波状态
 };
 
+// ========== 资源加载设置 ==========
+const resourceSettings = {
+    loadVoice: true,           // 是否加载角色语音
+    loadBGM: true,             // 是否加载背景音乐
+    loadSFX: true              // 是否加载游戏音效
+};
+
+// 从localStorage读取设置
+function loadResourceSettings() {
+    const saved = localStorage.getItem('resourceSettings');
+    if (saved) {
+        const parsed = JSON.parse(saved);
+        resourceSettings.loadVoice = parsed.loadVoice !== false;
+        resourceSettings.loadBGM = parsed.loadBGM !== false;
+        resourceSettings.loadSFX = parsed.loadSFX !== false;
+    }
+    updateResourceSettingsUI();
+}
+
+// 保存设置到localStorage
+function saveResourceSettings() {
+    localStorage.setItem('resourceSettings', JSON.stringify(resourceSettings));
+}
+
+// 更新设置界面UI
+function updateResourceSettingsUI() {
+    const voiceBtn = document.getElementById('settings-voice-btn');
+    const bgmLoadBtn = document.getElementById('settings-bgm-load-btn');
+    const sfxLoadBtn = document.getElementById('settings-sfx-load-btn');
+    
+    if (voiceBtn) {
+        voiceBtn.textContent = resourceSettings.loadVoice ? '🎤 开启' : '🎤 关闭';
+        voiceBtn.classList.toggle('off', !resourceSettings.loadVoice);
+    }
+    if (bgmLoadBtn) {
+        bgmLoadBtn.textContent = resourceSettings.loadBGM ? '🎵 开启' : '🎵 关闭';
+        bgmLoadBtn.classList.toggle('off', !resourceSettings.loadBGM);
+    }
+    if (sfxLoadBtn) {
+        sfxLoadBtn.textContent = resourceSettings.loadSFX ? '🔔 开启' : '🔔 关闭';
+        sfxLoadBtn.classList.toggle('off', !resourceSettings.loadSFX);
+    }
+}
+
+// 切换角色语音加载
+function toggleVoiceLoading() {
+    resourceSettings.loadVoice = !resourceSettings.loadVoice;
+    saveResourceSettings();
+    updateResourceSettingsUI();
+}
+
+// 切换背景音乐加载
+function toggleBGMLoading() {
+    resourceSettings.loadBGM = !resourceSettings.loadBGM;
+    saveResourceSettings();
+    updateResourceSettingsUI();
+    
+    // 如果关闭BGM，停止当前播放
+    if (!resourceSettings.loadBGM && audioState.bgmPlayer) {
+        audioState.bgmPlayer.pause();
+        audioState.isPlaying = false;
+    }
+}
+
+// 切换游戏音效加载
+function toggleSFXLoading() {
+    resourceSettings.loadSFX = !resourceSettings.loadSFX;
+    saveResourceSettings();
+    updateResourceSettingsUI();
+}
+
 // ========== 初始化 ==========
 function initAudio() {
     // 创建背景音乐播放器
@@ -84,6 +155,9 @@ function initAudio() {
     
     // 从localStorage读取设置
     loadAudioSettings();
+    
+    // 加载资源加载设置
+    loadResourceSettings();
     
     console.log('[Audio] 音频系统初始化完成');
 }
@@ -230,6 +304,13 @@ function playRandomFromCategory(category, fadeIn = true) {
 
 // 播放指定曲目
 function playBGM(trackPath, category = null, fadeIn = true) {
+    // 检查是否允许加载BGM
+    if (!resourceSettings.loadBGM) {
+        audioState.currentTrack = trackPath;
+        audioState.currentCategory = category;
+        return;
+    }
+    
     if (audioState.isMuted) {
         audioState.currentTrack = trackPath;
         audioState.currentCategory = category;
@@ -430,6 +511,8 @@ const MAX_SFX_INSTANCES = 5; // 每种音效最多同时播放5个
 
 // 播放音效
 function playSFX(sfxPath) {
+    // 检查是否允许加载音效
+    if (!resourceSettings.loadSFX) return;
     if (audioState.isMuted) return;
     
     // 初始化该音效的对象池
@@ -516,6 +599,8 @@ let characterVoicePlayer = null;
 
 // 播放角色介绍语音
 function playCharacterVoice(charId) {
+    // 检查是否允许加载语音
+    if (!resourceSettings.loadVoice) return;
     if (audioState.isMuted) return;
     
     const voiceName = CHARACTER_VOICE_MAP[charId];
@@ -537,6 +622,7 @@ function playCharacterVoice(charId) {
 
 // 播放角色胜利语音
 function playVictoryVoice(charId) {
+    if (!resourceSettings.loadVoice) return;
     if (audioState.isMuted) return;
     
     const voiceName = CHARACTER_VOICE_MAP[charId];
@@ -556,6 +642,7 @@ function playVictoryVoice(charId) {
 
 // 播放角色失败语音
 function playDefeatVoice(charId) {
+    if (!resourceSettings.loadVoice) return;
     if (audioState.isMuted) return;
     
     const voiceName = CHARACTER_VOICE_MAP[charId];
@@ -575,6 +662,7 @@ function playDefeatVoice(charId) {
 
 // 播放角色魔女化语音（带混响效果）
 function playWitchVoice(charId) {
+    if (!resourceSettings.loadVoice) return;
     if (audioState.isMuted) return;
     
     const voiceName = CHARACTER_VOICE_MAP[charId];
@@ -656,6 +744,7 @@ function createReverbImpulse(audioContext, duration, decay, reverse) {
 
 // 播放角色魔法语音（随机选择一个）
 function playMagicVoice(charId) {
+    if (!resourceSettings.loadVoice) return;
     if (audioState.isMuted) return;
     
     const voiceName = CHARACTER_VOICE_MAP[charId];
@@ -717,6 +806,7 @@ const MAGIC_SFX_MAP = {
 
 // 播放魔法音效（带混响）
 function playMagicSFX(charId) {
+    if (!resourceSettings.loadSFX) return;
     if (audioState.isMuted) return;
     
     const sfxName = MAGIC_SFX_MAP[charId];
@@ -967,3 +1057,11 @@ window.playMagicVoice = playMagicVoice;
 window.activateWitchFilter = activateWitchFilter;
 window.deactivateWitchFilter = deactivateWitchFilter;
 window.playMagicSFX = playMagicSFX;
+
+// 资源加载设置相关
+window.resourceSettings = resourceSettings;
+window.loadResourceSettings = loadResourceSettings;
+window.toggleVoiceLoading = toggleVoiceLoading;
+window.toggleBGMLoading = toggleBGMLoading;
+window.toggleSFXLoading = toggleSFXLoading;
+window.updateResourceSettingsUI = updateResourceSettingsUI;
