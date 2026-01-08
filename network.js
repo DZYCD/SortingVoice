@@ -356,7 +356,7 @@ async function createRoom() {
         // 添加自己到玩家列表
         networkState.players[1] = {
             id: 1,
-            name: '房主',
+            name: typeof getPlayerName === 'function' ? getPlayerName() : '房主',
             ready: false,
             character: null,
             isHost: true
@@ -414,7 +414,7 @@ async function joinRoom(roomCode) {
             // 发送加入请求
             sendMessage('join', {
                 requestId: requestId,
-                name: '玩家'
+                name: typeof getPlayerName === 'function' ? getPlayerName() : '玩家'
             });
         });
         
@@ -528,6 +528,9 @@ function handleMQTTMessage(topic, messageStr) {
             case 'confrontation_press':
                 handleRemoteConfrontationPress(message);
                 break;
+            case 'confirm_steal':
+                handleRemoteConfirmSteal(message);
+                break;
                 
             // ===== 汉娜浮空 =====
             case 'hanna_step_selected':
@@ -535,6 +538,14 @@ function handleMQTTMessage(topic, messageStr) {
                 break;
             case 'hanna_direction_selected':
                 handleRemoteHannaDirectionSelected(message);
+                break;
+                
+            // ===== 里世界效果 =====
+            case 'shadow_swap':
+                handleRemoteShadowSwap(message);
+                break;
+            case 'shadow_delete':
+                handleRemoteShadowDelete(message);
                 break;
                 
             // ===== 被动技能 =====
@@ -644,9 +655,40 @@ function handlePlayerReady(message) {
 
 // 处理角色选择
 function handleCharacterSelected(message) {
+    // 更新网络状态中的玩家角色
     if (networkState.players[message.playerId]) {
         networkState.players[message.playerId].character = message.characterId;
     }
+    
+    // 同步到游戏状态
+    if (typeof gameState !== 'undefined') {
+        // 添加到已选角色列表（如果还没有）
+        if (!gameState.selectedCharacters.includes(message.characterId)) {
+            gameState.selectedCharacters.push(message.characterId);
+        }
+        
+        // 更新当前选择玩家索引
+        gameState.currentSelectingPlayer = gameState.selectedCharacters.length;
+        
+        // 检查是否所有人都选完了
+        if (gameState.currentSelectingPlayer >= gameState.playerCount) {
+            // 房主初始化游戏
+            if (networkState.isHost) {
+                if (typeof initOnlineGame === 'function') {
+                    // 延迟一点让UI更新
+                    setTimeout(() => {
+                        initOnlineGame();
+                    }, 500);
+                }
+            }
+        } else {
+            // 更新角色选择界面
+            if (typeof renderOnlineCharacterSelect === 'function') {
+                renderOnlineCharacterSelect();
+            }
+        }
+    }
+    
     if (typeof updateRoomUI === 'function') {
         updateRoomUI();
     }
@@ -654,8 +696,30 @@ function handleCharacterSelected(message) {
 
 // 处理游戏开始
 function handleGameStart(message) {
-    if (typeof startOnlineGame === 'function') {
-        startOnlineGame(message.gameState);
+    console.log('[房间] 收到游戏开始消息:', message);
+    
+    // 角色选择阶段
+    if (message.phase === 'character_select') {
+        if (typeof gameState !== 'undefined') {
+            gameState.gameMode = 'multi';
+            gameState.playerCount = message.playerCount;
+            gameState.currentSelectingPlayer = 0;
+            gameState.selectedCharacters = [];
+            gameState.tempSelectedChar = null;
+        }
+        
+        if (typeof showScreen === 'function') {
+            showScreen('character-screen');
+        }
+        if (typeof renderOnlineCharacterSelect === 'function') {
+            renderOnlineCharacterSelect();
+        }
+    } 
+    // 游戏进行阶段（带完整状态）
+    else if (message.gameState) {
+        if (typeof startOnlineGame === 'function') {
+            startOnlineGame(message);
+        }
     }
 }
 
@@ -768,6 +832,12 @@ function handleRemoteConfrontationPress(message) {
     }
 }
 
+function handleRemoteConfirmSteal(message) {
+    if (networkState.isHost && typeof processRemoteConfirmSteal === 'function') {
+        processRemoteConfirmSteal(message.playerId, message.selectedSteals);
+    }
+}
+
 // ========== 汉娜浮空消息处理 ==========
 
 function handleRemoteHannaStepSelected(message) {
@@ -779,6 +849,20 @@ function handleRemoteHannaStepSelected(message) {
 function handleRemoteHannaDirectionSelected(message) {
     if (networkState.isHost && typeof processRemoteHannaDirectionSelected === 'function') {
         processRemoteHannaDirectionSelected(message.playerId, message.targetPos);
+    }
+}
+
+// ========== 里世界效果消息处理 ==========
+
+function handleRemoteShadowSwap(message) {
+    if (networkState.isHost && typeof processRemoteShadowSwap === 'function') {
+        processRemoteShadowSwap(message.playerId, message.targetPlayers);
+    }
+}
+
+function handleRemoteShadowDelete(message) {
+    if (networkState.isHost && typeof processRemoteShadowDelete === 'function') {
+        processRemoteShadowDelete(message.playerId, message.targetId, message.cardIndex);
     }
 }
 

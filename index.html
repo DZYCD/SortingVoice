@@ -301,13 +301,14 @@
             pointer-events: none;
         }
 
-        /* 大厅按钮容器 - 左下角斜放 */
+        /* 大厅按钮容器 - 左下角斜放竖排 */
         .hub-buttons {
             position: absolute;
             bottom: 100px;
             left: 80px;
             display: flex;
             flex-direction: column;
+            align-items: flex-start;
             gap: 20px;
             transform: rotate(-8deg);
         }
@@ -724,7 +725,7 @@
         .screen-title-wrapper {
             text-align: center;
             margin-bottom: 40px;
-            margin-top: 60px;
+            padding-top: 30px;
             position: relative;
         }
 
@@ -1210,8 +1211,8 @@
         /* 社交链接按钮 - 主界面左下角 */
         .hub-social-links {
             position: absolute;
-            bottom: 40px;
-            left: 40px;
+            top: 40px;
+            left: 200px;
             display: flex;
             gap: 12px;
         }
@@ -2099,37 +2100,50 @@
         <!-- 日夜切换按钮 -->
         <button id="day-night-toggle" class="btn-daynight" onclick="playSubClickSFX(); toggleDayNight()" onmouseenter="playHoverSFX()" title="切换日夜">白昼</button>
         
-        <!-- 游戏标题 - 居中显示 -->
+        <!-- 游戏标题 - 图片Logo -->
         <div class="game-logo">
-            <div class="logo-decoration top">
-                <span class="deco-line"></span>
-                <span class="deco-diamond">◇</span>
-                <span class="deco-line"></span>
-            </div>
-            <div class="logo-main">
-                <span class="logo-scale left">⚖</span>
-                <div class="logo-text">
-                    <div class="logo-line1">魔法少女的</div>
-                    <div class="logo-line2">审判前夜</div>
+            <img src="icon/common/Title.png" alt="魔法少女的审判前夜" class="game-logo-img">
+            
+            <!-- 玩家名称输入框 -->
+            <div class="player-name-input-wrapper">
+                <img src="icon/common/name text.png" class="name-input-bg" alt="">
+                <div class="name-input-container">
+                    <button class="name-color-btn" id="name-color-btn" onclick="toggleColorPicker()" title="选择首字颜色">
+                        <span class="color-preview" id="color-preview"></span>
+                    </button>
+                    <input type="text" id="player-name-input" class="player-name-input" 
+                           placeholder="输入你的名字..." 
+                           maxlength="12"
+                           value=""
+                           oninput="updateNamePreview()"
+                           onchange="savePlayerName(this.value)"
+                           onfocus="playHoverSFX()">
                 </div>
-                <span class="logo-scale right">⚖</span>
-            </div>
-            <div class="logo-decoration bottom">
-                <span class="deco-book">📖</span>
+                <!-- 颜色选择面板 -->
+                <div class="name-color-picker hidden" id="name-color-picker">
+                    <div class="color-option" data-color="#4ade80" style="background:#4ade80" onclick="selectNameColor('#4ade80')"></div>
+                    <div class="color-option" data-color="#a855f7" style="background:#a855f7" onclick="selectNameColor('#a855f7')"></div>
+                    <div class="color-option" data-color="#ec4899" style="background:#ec4899" onclick="selectNameColor('#ec4899')"></div>
+                    <div class="color-option" data-color="#f97316" style="background:#f97316" onclick="selectNameColor('#f97316')"></div>
+                    <div class="color-option" data-color="#eab308" style="background:#eab308" onclick="selectNameColor('#eab308')"></div>
+                    <div class="color-option" data-color="#3b82f6" style="background:#3b82f6" onclick="selectNameColor('#3b82f6')"></div>
+                    <div class="color-option" data-color="#ef4444" style="background:#ef4444" onclick="selectNameColor('#ef4444')"></div>
+                    <div class="color-option" data-color="#ffffff" style="background:#ffffff" onclick="selectNameColor('#ffffff')"></div>
+                </div>
             </div>
         </div>
         
-        <!-- 主菜单按钮 - 左下角斜放 -->
+        <!-- 主菜单按钮 - 底部斜放 -->
         <div class="hub-buttons">
-            <button class="btn-primary hub-btn" onclick="playMainClickSFX(); selectGameMode('single')" onmouseenter="playHoverSFX()">
-                <span class="decor-left">⚖</span>
+            <button class="hub-btn" onclick="playMainClickSFX(); selectGameMode('single')" onmouseenter="playHoverSFX()">
+                <span class="decor-left">◆</span>
                 单人游戏
-                <span class="decor-right">⚖</span>
+                <span class="decor-right">◆</span>
             </button>
-            <button class="btn-primary hub-btn" onclick="playMainClickSFX(); showScreen('online-screen')" onmouseenter="playHoverSFX()">
-                <span class="decor-left">⚖</span>
+            <button class="hub-btn" onclick="playMainClickSFX(); showScreen('online-screen')" onmouseenter="playHoverSFX()">
+                <span class="decor-left">◆</span>
                 多人游戏
-                <span class="decor-right">⚖</span>
+                <span class="decor-right">◆</span>
             </button>
         </div>
         
@@ -2191,12 +2205,25 @@
             </div>
             <div id="connection-status" class="connection-status"></div>
         </div>
+        <div class="footer-logo">
+            <img src="icon/common/Title.png" alt="Logo" class="footer-logo-img">
+        </div>
     </div>
 
     <!-- ========== 房间等待界面 ========== -->
     <div id="room-screen" class="hidden screen-bg-multiplayer">
         <button class="btn-back" onclick="playSubClickSFX(); handleLeaveRoom()" onmouseenter="playHoverSFX()">← 离开房间</button>
-        <h2 class="screen-title">房间大厅</h2>
+        <div class="decorated-title-wrapper">
+            <div class="title-decor-top">
+                <span class="decor-line"></span>
+                <span class="decor-diamond">◇</span>
+                <span class="decor-line"></span>
+            </div>
+            <h2 class="decorated-title">房间大厅</h2>
+            <div class="title-decor-bottom">
+                <span class="decor-scale">⚖</span>
+            </div>
+        </div>
         <div class="room-container">
             <div class="room-code-display">
                 <span class="room-code-label">房间码</span>
@@ -2210,6 +2237,9 @@
                 <button id="ready-btn" class="ready-btn" onclick="toggleReady()">准备</button>
                 <button id="start-game-btn" class="start-game-btn hidden" onclick="handleStartOnlineGame()">开始游戏</button>
             </div>
+        </div>
+        <div class="footer-logo">
+            <img src="icon/common/Title.png" alt="Logo" class="footer-logo-img">
         </div>
     </div>
 
@@ -2227,8 +2257,8 @@
                 <span class="decor-scale">⚖</span>
             </div>
         </div>
-        <div class="settings-container">
-            <div class="gold-card">
+        <div class="settings-horizontal-container">
+            <div class="gold-card settings-card">
                 <h3 class="gold-card-title">🎵 音频设置</h3>
                 <div class="settings-item">
                     <span class="settings-label">背景音乐</span>
@@ -2253,7 +2283,7 @@
                     </button>
                 </div>
             </div>
-            <div class="gold-card">
+            <div class="gold-card settings-card">
                 <h3 class="gold-card-title">🎨 显示设置</h3>
                 <div class="settings-item">
                     <span class="settings-label">粒子效果</span>
@@ -2262,9 +2292,9 @@
                     </button>
                 </div>
             </div>
-            <div class="gold-card">
-                <h3 class="gold-card-title">📦 资源加载设置</h3>
-                <p class="settings-hint">关闭不需要的资源可加快加载速度</p>
+            <div class="gold-card settings-card">
+                <h3 class="gold-card-title">📦 资源加载</h3>
+                <p class="settings-hint">关闭不需要的资源可加快加载</p>
                 <div class="settings-item">
                     <span class="settings-label">角色语音</span>
                     <button class="toggle-gold" id="settings-voice-btn" onclick="toggleVoiceLoading();">
@@ -2285,22 +2315,15 @@
                 </div>
             </div>
         </div>
-        <!-- 底部Logo -->
         <div class="footer-logo">
-            <div class="logo-main">
-                <span class="logo-scale left">⚖</span>
-                <div class="logo-text">
-                    <div class="logo-line1">魔法少女的</div>
-                    <div class="logo-line2">审判前夜</div>
-                </div>
-                <span class="logo-scale right">⚖</span>
-            </div>
+            <img src="icon/common/Title.png" alt="Logo" class="footer-logo-img">
         </div>
     </div>
 
     <!-- ========== 规则界面 ========== -->
     <div id="rules-screen" class="hidden screen-bg-setting">
         <button class="btn-back" onclick="playSubClickSFX(); showScreen('menu-screen')" onmouseenter="playHoverSFX()">← 返回</button>
+        <img src="icon/common/Title.png" alt="Logo" class="screen-logo-topright">
         <div class="decorated-title-wrapper">
             <div class="title-decor-top">
                 <span class="decor-line"></span>
@@ -2482,18 +2505,7 @@
             <span class="rules-page-dot" onclick="goToRulesPage(7)"></span>
             <span class="rules-page-dot" onclick="goToRulesPage(8)"></span>
         </div>
-        
-        <!-- 底部Logo -->
-        <div class="footer-logo">
-            <div class="logo-main">
-                <span class="logo-scale left">⚖</span>
-                <div class="logo-text">
-                    <div class="logo-line1">魔法少女的</div>
-                    <div class="logo-line2">审判前夜</div>
-                </div>
-                <span class="logo-scale right">⚖</span>
-            </div>
-        </div>
+    
     </div>
 
     <!-- ========== 制作人员界面 ========== -->
@@ -2510,24 +2522,25 @@
                 <span class="decor-scale">⚖</span>
             </div>
         </div>
-        <div class="credits-container">
-            <div class="gold-card">
-                <div class="gold-card-content" style="text-align: center;">
-                    <!-- 制作者头像区域 -->
-                    <div class="credits-avatars">
-                        <div class="credits-avatar-item">
-                            <img src="icon/DzyCd/DzyCd.png" alt="单子叶蚕豆" class="credits-avatar">
+        <div class="credits-horizontal-container">
+            <!-- 左侧：制作者信息 - 带流动边框 -->
+            <div class="credits-showcase">
+                <div class="credits-showcase-border"></div>
+                <div class="credits-showcase-content">
+                    <div class="credits-avatars-glow">
+                        <div class="credits-avatar-item-glow">
+                            <img src="icon/DzyCd/DzyCd.png" alt="单子叶蚕豆" class="credits-avatar-glow">
+                            <div class="avatar-glow-ring"></div>
                         </div>
-                        <div class="credits-avatar-item">
-                            <img src="icon/DzyCd/SaYi.png" alt="SaYi机器人" class="credits-avatar">
+                        <div class="credits-avatar-item-glow">
+                            <img src="icon/DzyCd/SaYi.png" alt="SaYi机器人" class="credits-avatar-glow">
+                            <div class="avatar-glow-ring"></div>
                         </div>
                     </div>
-                    <p class="credits-intro">
-                        <span style="color: #4ade80; font-size: 1.2em;">单</span>子叶蚕豆和他的<span style="color: #a855f7; font-size: 1.2em;">S</span>aYi_998机器人助理
+                    <p class="credits-name-glow">
+                        <span class="glow-green">单</span>子叶蚕豆<span class="glow-and">&</span><span class="glow-purple">S</span>aYi_998
                     </p>
-                    <p style="color: #d4af37; margin-bottom: 15px;">ISOM_单子叶蚕豆</p>
-                    
-                    <!-- 社交链接 -->
+                    <p class="credits-subtitle">ISOM_单子叶蚕豆</p>
                     <div class="social-links">
                         <a href="https://github.com/DZYCD" target="_blank" class="social-btn social-github" onmouseenter="playHoverSFX()">
                             <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
@@ -2542,45 +2555,31 @@
                             <span>Bilibili</span>
                         </a>
                     </div>
-                    
-                    <div class="credits-section">
-                        <h3>🎮 游戏设计 & 💻 编程支持</h3>
-                        <p><span class="highlight-purple">K</span>iro<br><span style="color: #4ade80; font-size: 1.2em;">单</span>子叶蚕豆</p>
-                    </div>
-                    <div class="credits-section">
-                        <h3>🎤 语音素材</h3>
-                        <p><span class="highlight-orange">M</span>INIMAX Speech 2.6 角色声音合成（声库自传）<br><span class="highlight-purple">魔</span>法少女的魔女审判 游戏本体</p>
-                    </div>
-                    <div class="credits-section">
-                        <h3>🎨 美术资源</h3>
-                        <p>全角色论破图片素材：<span class="highlight-pink">b</span>ilibili@<span class="highlight-purple">夏</span>目安安anan<br>诺亚和希罗的pin标签：<span class="highlight-white">G</span>PT绘制</p>
-                    </div>
-                    <div class="credits-section">
-                        <h3>🎵 音乐素材</h3>
-                        <p>全部来源于免费素材网以及游戏本体包</p>
-                    </div>
-                    <div class="credits-section">
-                        <h3>💝 鸣谢</h3>
-                        <p>bilibili @<span class="highlight-pink">双</span>鱼馅豆腐。 提供精神支持<br>
-                        感谢<span class="highlight-yellow glow">断</span>夏讨论组的支持<br>
-                        一群980726909 二群1033024072<br>
-                        <span style="font-size: 0.9em; color: #888;">群内正在制作魔裁全角色Live2D模型</span><br><br>
-                        感谢Vibe Coding时代和互联网精神<br>
-                        制作游戏的素材极其丰富，效率高太多了</p>
-                    </div>
                 </div>
+            </div>
+            <!-- 中间：素材来源 -->
+            <div class="gold-card credits-card">
+                <h3 class="gold-card-title">🎮 游戏设计 & 编程</h3>
+                <p><span class="highlight-purple">K</span>iro · <span style="color: #4ade80;">单</span>子叶蚕豆</p>
+                <h3 class="gold-card-title" style="margin-top:15px;">🎤 语音素材</h3>
+                <p><span class="highlight-orange">M</span>INIMAX Speech 2.6<br><span class="highlight-purple">魔</span>法少女的魔女审判</p>
+                <h3 class="gold-card-title" style="margin-top:15px;">🎨 美术资源</h3>
+                <p>论破素材：<span class="highlight-pink">b</span>ilibili@夏目安安anan<br>pin标签：<span class="highlight-white">G</span>PT绘制</p>
+            </div>
+            <!-- 右侧：鸣谢 -->
+            <div class="gold-card credits-card">
+                <h3 class="gold-card-title">🎵 音乐素材</h3>
+                <p>免费素材网 & 游戏本体包</p>
+                <h3 class="gold-card-title" style="margin-top:15px;">💝 鸣谢</h3>
+                <p>bilibili @<span class="highlight-pink">双</span>鱼馅豆腐。<br>
+                <span class="highlight-yellow glow">断</span>夏讨论组<br>
+                <span style="font-size: 0.85em; color: #888;">一群980726909<br>二群1033024072</span><br>
+                <span style="font-size: 0.8em; color: #666;">群内制作魔裁全角色Live2D</span></p>
+                <p style="margin-top:10px; font-size:0.85em; color:#888;">感谢Vibe Coding时代<br>和互联网精神</p>
             </div>
         </div>
-        <!-- 底部Logo -->
         <div class="footer-logo">
-            <div class="logo-main">
-                <span class="logo-scale left">⚖</span>
-                <div class="logo-text">
-                    <div class="logo-line1">魔法少女的</div>
-                    <div class="logo-line2">审判前夜</div>
-                </div>
-                <span class="logo-scale right">⚖</span>
-            </div>
+            <img src="icon/common/Title.png" alt="Logo" class="footer-logo-img">
         </div>
     </div>
 
@@ -2641,11 +2640,7 @@
                 <div class="game-navbar-left">
                     <!-- 小Logo -->
                     <div class="game-logo-mini">
-                        <span class="logo-scale-mini">⚖</span>
-                        <div class="logo-text-mini">
-                            <div class="logo-line1-mini">魔法少女的</div>
-                            <div class="logo-line2-mini">审判前夜</div>
-                        </div>
+                        <img src="icon/common/Title.png" alt="魔法少女的审判前夜" class="game-logo-mini-img">
                     </div>
                     <button class="btn-exit-room" onclick="exitRoom()">退出房间</button>
                 </div>
@@ -2884,14 +2879,7 @@
             
             <!-- 底部装饰 - 使用CSS库的footer-logo -->
             <div class="footer-logo result-footer-logo">
-                <div class="logo-main">
-                    <span class="logo-scale left">⚖</span>
-                    <div class="logo-text">
-                        <div class="logo-line1">魔法少女的</div>
-                        <div class="logo-line2">审判前夜</div>
-                    </div>
-                    <span class="logo-scale right">⚖</span>
-                </div>
+                <img src="icon/common/Title.png" alt="魔法少女的审判前夜" class="footer-logo-img">
             </div>
         </div>
     </div>

@@ -117,7 +117,7 @@
 .decorated-title-wrapper {
     text-align: center;
     margin-bottom: 40px;
-    margin-top: 60px;
+    padding-top: 30px;
 }
 
 /* 上方装饰 */
@@ -958,7 +958,7 @@
 /* 角色选择标题容器 */
 .char-select-title-wrapper {
     text-align: center;
-    margin-top: 30px;
+    padding-top: 20px;
     margin-bottom: 25px;
 }
 
@@ -6809,4 +6809,687 @@
 .player-online-status.reconnecting {
     background: #f39c12;
     animation: pulse 1s infinite;
+}
+
+
+/* ========== 多人模式回合控制样式 ========== */
+
+/* 等待其他玩家时的控制台样式 */
+#user-console.waiting-turn {
+    opacity: 0.85;
+}
+
+#user-console.waiting-turn .hand-card {
+    filter: grayscale(0.3);
+    cursor: not-allowed;
+}
+
+#user-console.my-turn .hand-card.my-turn {
+    cursor: pointer;
+    animation: cardGlow 2s ease-in-out infinite;
+}
+
+@keyframes cardGlow {
+    0%, 100% { box-shadow: 0 0 5px rgba(212, 175, 55, 0.3); }
+    50% { box-shadow: 0 0 15px rgba(212, 175, 55, 0.6), 0 0 25px rgba(212, 175, 55, 0.3); }
+}
+
+/* 禁用状态的手牌 */
+.hand-card.disabled {
+    opacity: 0.6;
+    cursor: not-allowed !important;
+    filter: grayscale(0.3);
+}
+
+.hand-card.disabled:hover {
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* 魔法按钮禁用状态 */
+#btn-cast-magic.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    filter: grayscale(0.5);
+}
+
+#btn-cast-magic.my-turn {
+    animation: magicBtnGlow 2s ease-in-out infinite;
+}
+
+@keyframes magicBtnGlow {
+    0%, 100% { box-shadow: 0 0 10px rgba(139, 30, 50, 0.5); }
+    50% { box-shadow: 0 0 20px rgba(139, 30, 50, 0.8), 0 0 30px rgba(139, 30, 50, 0.4); }
+}
+
+/* 提示文字样式 */
+#prompt-text.waiting {
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+#prompt-text.my-turn {
+    color: var(--gold-light);
+    font-weight: 600;
+}
+
+/* 等待遮罩（可选，用于强调等待状态） */
+.waiting-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.3);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    pointer-events: none;
+}
+
+.waiting-overlay-text {
+    font-family: var(--font-serif);
+    font-size: 1.2rem;
+    color: var(--text-primary);
+    background: rgba(0, 0, 0, 0.7);
+    padding: 15px 30px;
+    border-radius: 10px;
+    border: 1px solid var(--gold-dark);
+}
+
+/* 当前回合玩家高亮 */
+.turn-order-item.current {
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.3), rgba(139, 115, 85, 0.2));
+    border-color: var(--gold-light);
+    transform: scale(1.05);
+}
+
+/* 多人模式玩家卡片在线状态 */
+.player-card .online-indicator {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #2ecc71;
+    box-shadow: 0 0 5px #2ecc71;
+}
+
+.player-card .online-indicator.offline {
+    background: #95a5a6;
+    box-shadow: none;
+}
+
+
+/* ========== 主菜单图片按钮样式 ========== */
+
+/* 图片按钮基础样式 */
+.hub-img-btn {
+    position: relative;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    transition: transform 0.3s ease;
+    transform-origin: center center;
+}
+
+/* 按钮图片 */
+.hub-img-btn img {
+    display: block;
+    max-width: 320px;
+    height: auto;
+    transition: opacity 0.3s ease;
+}
+
+/* 默认显示normal图片，隐藏hover图片 */
+.hub-img-btn .btn-img-normal {
+    opacity: 1;
+}
+
+.hub-img-btn .btn-img-hover {
+    position: absolute;
+    top: 0;
+    left: 0;
+    opacity: 0;
+}
+
+/* 悬停时切换图片 */
+.hub-img-btn:hover .btn-img-normal {
+    opacity: 0;
+}
+
+.hub-img-btn:hover .btn-img-hover {
+    opacity: 1;
+}
+
+/* 悬停时放大效果 */
+.hub-img-btn:hover {
+    transform: scale(1.08);
+}
+
+/* 点击效果 */
+.hub-img-btn:active {
+    transform: scale(0.98);
+}
+
+/* 日夜切换图片按钮 */
+.daynight-img-btn {
+    position: absolute;
+    top: 30px;
+    left: 30px;
+    background: none;
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    z-index: 100;
+    transition: transform 0.3s ease;
+    outline: none;
+}
+
+.daynight-img-btn img {
+    display: block;
+    width: 120px;
+    height: auto;
+    transition: transform 0.3s ease, filter 0.3s ease;
+    background: transparent;
+}
+
+.daynight-img-btn:hover img {
+    transform: scale(1.15);
+    filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.8));
+}
+
+.daynight-img-btn:active img {
+    transform: scale(0.95);
+}
+
+
+/* ========== 玩家名称输入框样式 ========== */
+
+/* 输入框容器 */
+.player-name-input-wrapper {
+    position: relative;
+    width: 400px;
+    height: 80px;
+    margin-top: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 羊皮纸背景图 */
+.name-input-bg {
+    position: absolute;
+    width: 100%;
+    height: auto;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* 输入框和颜色按钮容器 */
+.name-input-container {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-right: 15px;
+}
+
+/* 颜色选择按钮 */
+.name-color-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid rgba(90, 74, 58, 0.5);
+    background: rgba(255, 255, 255, 0.3);
+    cursor: pointer;
+    padding: 3px;
+    transition: all 0.3s ease;
+}
+
+.name-color-btn:hover {
+    border-color: rgba(90, 74, 58, 0.8);
+    transform: scale(1.1);
+}
+
+.color-preview {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: #4ade80;
+}
+
+/* 颜色选择面板 */
+.name-color-picker {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    padding: 10px 15px;
+    background: rgba(30, 25, 20, 0.95);
+    border: 2px solid var(--gold-dark);
+    border-radius: 25px;
+    margin-bottom: 10px;
+    z-index: 100;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+}
+
+.name-color-picker.hidden {
+    display: none;
+}
+
+.color-option {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.color-option:hover {
+    transform: scale(1.2);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.color-option.selected {
+    border-color: #fff;
+    box-shadow: 0 0 8px currentColor;
+}
+
+/* 输入框本身 */
+.player-name-input {
+    position: relative;
+    z-index: 1;
+    width: 200px;
+    padding: 12px 15px;
+    font-family: var(--font-serif);
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #3a2a1a;
+    background: transparent;
+    border: none;
+    outline: none;
+    text-align: center;
+    letter-spacing: 3px;
+    caret-color: #5a4a3a;
+}
+
+.player-name-input::placeholder {
+    color: rgba(80, 60, 40, 0.5);
+    font-style: italic;
+    letter-spacing: 2px;
+}
+
+.player-name-input:focus {
+    text-shadow: 0 0 5px rgba(139, 115, 85, 0.3);
+}
+
+/* 输入框选中文字样式 */
+.player-name-input::selection {
+    background: rgba(139, 115, 85, 0.3);
+    color: #2a1a0a;
+}
+
+/* ========== 设置界面横向布局 ========== */
+.settings-horizontal-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 30px;
+    padding: 20px 60px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.settings-card {
+    flex: 1;
+    min-width: 280px;
+    max-width: 380px;
+}
+
+/* ========== 制作人员界面横向布局 ========== */
+.credits-horizontal-container {
+    display: flex;
+    justify-content: center;
+    align-items: stretch;
+    gap: 30px;
+    padding: 20px 60px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.credits-card {
+    flex: 1;
+    min-width: 280px;
+    max-width: 400px;
+    text-align: center;
+}
+
+.credits-card p {
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 8px;
+}
+
+.credits-card .gold-card-title {
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+}
+
+.credits-main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 高亮文字样式 */
+.highlight-purple { color: #a855f7; font-weight: 700; }
+.highlight-pink { color: #ec4899; font-weight: 700; }
+.highlight-orange { color: #f97316; font-weight: 700; }
+.highlight-yellow { color: #eab308; font-weight: 700; }
+.highlight-white { color: #fff; font-weight: 700; }
+.highlight-yellow.glow { text-shadow: 0 0 10px #eab308; }
+
+
+/* ========== 制作人员展示卡片 - 流动边框效果 ========== */
+.credits-showcase {
+    position: relative;
+    min-width: 320px;
+    max-width: 400px;
+    padding: 3px;
+    border-radius: 12px;
+    background: linear-gradient(90deg, #4ade80, #a855f7, #ec4899, #f97316, #4ade80);
+    background-size: 300% 100%;
+    animation: borderFlow 4s linear infinite;
+}
+
+@keyframes borderFlow {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 300% 50%; }
+}
+
+.credits-showcase-content {
+    background: rgba(20, 15, 10, 0.95);
+    border-radius: 10px;
+    padding: 30px 25px;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+}
+
+/* 头像容器 */
+.credits-avatars-glow {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin-bottom: 20px;
+}
+
+.credits-avatar-item-glow {
+    position: relative;
+    width: 90px;
+    height: 90px;
+}
+
+.credits-avatar-glow {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    position: relative;
+    z-index: 2;
+    border: 3px solid transparent;
+    background: linear-gradient(rgba(20,15,10,1), rgba(20,15,10,1)) padding-box,
+                linear-gradient(135deg, #4ade80, #a855f7) border-box;
+}
+
+/* 头像发光环 */
+.avatar-glow-ring {
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    right: -5px;
+    bottom: -5px;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, #4ade80, #a855f7, #ec4899, #4ade80);
+    animation: ringRotate 3s linear infinite;
+    z-index: 1;
+    opacity: 0.6;
+    filter: blur(8px);
+}
+
+@keyframes ringRotate {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 名字发光效果 */
+.credits-name-glow {
+    font-family: var(--font-serif);
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 8px;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.glow-green {
+    color: #4ade80;
+    font-size: 1.6em;
+    text-shadow: 0 0 15px #4ade80, 0 0 30px #4ade80;
+    animation: glowPulse 2s ease-in-out infinite;
+}
+
+.glow-purple {
+    color: #a855f7;
+    font-size: 1.6em;
+    text-shadow: 0 0 15px #a855f7, 0 0 30px #a855f7;
+    animation: glowPulse 2s ease-in-out infinite 0.5s;
+}
+
+.glow-and {
+    color: #888;
+    font-size: 0.9em;
+    margin: 0 5px;
+}
+
+@keyframes glowPulse {
+    0%, 100% { opacity: 1; filter: brightness(1); }
+    50% { opacity: 0.8; filter: brightness(1.3); }
+}
+
+.credits-subtitle {
+    color: #d4af37;
+    font-size: 1rem;
+    margin-bottom: 20px;
+    text-shadow: 0 0 8px rgba(212, 175, 55, 0.5);
+}
+
+/* 社交链接在showcase中的样式 */
+.credits-showcase .social-links {
+    margin-top: 15px;
+}
+
+
+/* ========== 图片Logo样式 ========== */
+
+/* 主界面大Logo */
+.game-logo-img {
+    max-width: 450px;
+    height: auto;
+    filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.3));
+    transition: filter 0.3s ease;
+}
+
+.night-mode .game-logo-img {
+    filter: drop-shadow(0 0 25px rgba(255, 255, 255, 0.5));
+}
+
+/* 底部小Logo */
+.footer-logo-img {
+    max-width: 200px;
+    height: auto;
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.2));
+    opacity: 0.8;
+}
+
+/* 游戏界面导航栏mini Logo */
+.game-logo-mini-img {
+    height: 70px;
+    width: auto;
+    filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.3));
+}
+
+/* 结算界面Logo */
+.result-footer-logo .footer-logo-img {
+    max-width: 180px;
+    opacity: 0.7;
+}
+
+
+/* 右上角Logo（设置/规则/制作人员界面） */
+.screen-logo-topright {
+    position: absolute;
+    top: 80px;
+    right: 20px;
+    max-width: 180px;
+    height: auto;
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.2));
+    opacity: 0.7;
+    z-index: 10;
+    transition: opacity 0.3s ease;
+}
+
+.screen-logo-topright:hover {
+    opacity: 1;
+}
+
+
+/* ========== 自定义弹窗样式 ========== */
+
+.custom-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.custom-modal.hidden {
+    display: none;
+}
+
+.custom-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+}
+
+.custom-modal-content {
+    position: relative;
+    z-index: 1;
+    min-width: 320px;
+    max-width: 450px;
+    padding: 30px 40px;
+    text-align: center;
+    animation: modalFadeIn 0.3s ease-out;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.custom-modal-icon {
+    font-size: 3rem;
+    margin-bottom: 15px;
+}
+
+.custom-modal-message {
+    font-family: var(--font-serif);
+    font-size: 1.2rem;
+    color: var(--text-primary);
+    line-height: 1.6;
+    margin-bottom: 25px;
+}
+
+.custom-modal-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+/* 弹窗按钮样式 */
+.modal-btn {
+    padding: 12px 30px;
+    font-family: var(--font-serif);
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid;
+}
+
+.modal-btn-confirm {
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.3), rgba(139, 115, 85, 0.2));
+    border-color: var(--gold-light);
+    color: var(--gold-light);
+}
+
+.modal-btn-confirm:hover {
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.5), rgba(139, 115, 85, 0.4));
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.5);
+    transform: scale(1.05);
+}
+
+.modal-btn-cancel {
+    background: rgba(100, 100, 100, 0.2);
+    border-color: #666;
+    color: var(--text-muted);
+}
+
+.modal-btn-cancel:hover {
+    background: rgba(100, 100, 100, 0.4);
+    border-color: #888;
+    color: var(--text-secondary);
+}
+
+.modal-btn-danger {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: #ef4444;
+    color: #ef4444;
+}
+
+.modal-btn-danger:hover {
+    background: rgba(239, 68, 68, 0.4);
+    box-shadow: 0 0 15px rgba(239, 68, 68, 0.5);
 }

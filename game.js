@@ -613,6 +613,103 @@ function toggleParticlesEffect() {
     updateSettingsSliders();
 }
 
+// ========== 玩家名称 ==========
+let playerName = localStorage.getItem('playerName') || '';
+let playerNameColor = localStorage.getItem('playerNameColor') || '#4ade80';
+
+// 可用的名字颜色列表
+const NAME_COLORS = ['#4ade80', '#a855f7', '#ec4899', '#f97316', '#eab308', '#3b82f6', '#ef4444', '#ffffff'];
+
+// AI玩家的固定随机颜色（每个AI一个固定颜色，避免每次渲染变化）
+const aiColors = {};
+
+function savePlayerName(name) {
+    playerName = name.trim();
+    localStorage.setItem('playerName', playerName);
+}
+
+function getPlayerName() {
+    return playerName || '玩家';
+}
+
+function getPlayerNameColor() {
+    return playerNameColor;
+}
+
+// 获取AI的颜色（固定随机，同一个AI始终同色）
+function getAIColor(aiIndex) {
+    if (!aiColors[aiIndex]) {
+        aiColors[aiIndex] = NAME_COLORS[Math.floor(Math.random() * NAME_COLORS.length)];
+    }
+    return aiColors[aiIndex];
+}
+
+// 格式化玩家名字（第一个字放大并着色）
+function formatPlayerName(name, color) {
+    if (!name) return '玩家';
+    const firstChar = name.charAt(0);
+    const rest = name.slice(1);
+    return `<span style="color:${color || playerNameColor}; font-size:1.2em; font-weight:700; text-shadow:0 0 8px ${color || playerNameColor};">${firstChar}</span>${rest}`;
+}
+
+// 切换颜色选择器显示
+function toggleColorPicker() {
+    const picker = document.getElementById('name-color-picker');
+    if (picker) {
+        picker.classList.toggle('hidden');
+        if (typeof playHoverSFX === 'function') playHoverSFX();
+    }
+}
+
+// 选择名字颜色
+function selectNameColor(color) {
+    playerNameColor = color;
+    localStorage.setItem('playerNameColor', color);
+    
+    // 更新预览
+    const preview = document.getElementById('color-preview');
+    if (preview) {
+        preview.style.background = color;
+    }
+    
+    // 更新所有颜色选项的选中状态
+    document.querySelectorAll('.color-option').forEach(opt => {
+        opt.classList.toggle('selected', opt.dataset.color === color);
+    });
+    
+    // 隐藏选择器
+    const picker = document.getElementById('name-color-picker');
+    if (picker) {
+        picker.classList.add('hidden');
+    }
+    
+    if (typeof playSelectSFX === 'function') playSelectSFX();
+}
+
+// 更新名字预览（输入时）
+function updateNamePreview() {
+    // 可以在这里添加实时预览逻辑
+}
+
+// 初始化玩家名称输入框
+function initPlayerNameInput() {
+    const input = document.getElementById('player-name-input');
+    if (input && playerName) {
+        input.value = playerName;
+    }
+    
+    // 初始化颜色预览
+    const preview = document.getElementById('color-preview');
+    if (preview) {
+        preview.style.background = playerNameColor;
+    }
+    
+    // 初始化颜色选项选中状态
+    document.querySelectorAll('.color-option').forEach(opt => {
+        opt.classList.toggle('selected', opt.dataset.color === playerNameColor);
+    });
+}
+
 // ========== 日夜切换 ==========
 let isNightMode = false;
 
@@ -623,11 +720,11 @@ function toggleDayNight() {
     
     if (isNightMode) {
         menuScreen.classList.add('night-mode');
-        toggleBtn.innerHTML = '黑夜';
+        toggleBtn.textContent = '黑夜';
         toggleBtn.title = '切换到白天';
     } else {
         menuScreen.classList.remove('night-mode');
-        toggleBtn.innerHTML = '白昼';
+        toggleBtn.textContent = '白昼';
         toggleBtn.title = '切换到夜晚';
     }
 }
@@ -677,9 +774,16 @@ function renderCharacterSelectScreen() {
     const playerNum = gameState.currentSelectingPlayer + 1;
     const isAI = gameState.gameMode === 'single' && playerNum > 1;
     
-    // 更新标题
-    document.getElementById('char-select-title').textContent = 
-        isAI ? `AI ${playerNum - 1} 选择角色` : `玩家 ${playerNum} 选择角色`;
+    // 更新标题 - 所有玩家名字都带颜色格式
+    const titleEl = document.getElementById('char-select-title');
+    if (isAI) {
+        const aiName = `AI ${playerNum - 1}`;
+        titleEl.innerHTML = `${formatPlayerName(aiName, getAIColor(playerNum - 1))} 选择角色`;
+    } else if (playerNum === 1) {
+        titleEl.innerHTML = `${formatPlayerName(getPlayerName(), getPlayerNameColor())} 选择角色`;
+    } else {
+        titleEl.innerHTML = `${formatPlayerName(`玩家 ${playerNum}`, getAIColor(playerNum + 10))} 选择角色`;
+    }
     
     // 更新进度指示器（菱形样式）
     const progressEl = document.getElementById('char-select-progress');
@@ -1129,7 +1233,8 @@ function initGame() {
         const charId = gameState.selectedCharacters[i];
         const char = CHARACTERS.find(c => c.id === charId);
         const isAI = gameState.gameMode === 'single' && i > 0;
-        const name = isAI ? `AI ${i}` : `玩家 ${i + 1}`;
+        // 第一个玩家使用用户输入的名字，AI使用默认名字
+        const name = isAI ? `AI ${i}` : (i === 0 ? getPlayerName() : `玩家 ${i + 1}`);
         
         gameState.players.push(createPlayer(i + 1, name, char, isAI));
     }
@@ -1807,14 +1912,20 @@ function renderClueDots(count, max) {
 
 // 渲染用户控制台
 function renderUserConsole() {
-    const humanPlayer = gameState.players.find(p => !p.isAI);
-    if (!humanPlayer) return;
+    // 多人模式：获取本地玩家
+    let localPlayer;
+    if (networkState.mode === 'online') {
+        localPlayer = gameState.players.find(p => p.id === networkState.localPlayerId);
+    } else {
+        localPlayer = gameState.players.find(p => !p.isAI);
+    }
+    if (!localPlayer) return;
     
-    const char = humanPlayer.character;
+    const char = localPlayer.character;
     const witchLimit = char.id === 'meruru' ? 150 : 100;
-    const witchPercent = (humanPlayer.witchification / witchLimit) * 100;
-    const humanPlayerIndex = gameState.players.indexOf(humanPlayer);
-    const isActive = humanPlayerIndex === gameState.currentPlayerIndex;
+    const witchPercent = (localPlayer.witchification / witchLimit) * 100;
+    const localPlayerIndex = gameState.players.indexOf(localPlayer);
+    const isActive = localPlayerIndex === gameState.currentPlayerIndex;
     
     // 轮到用户时自动打开控制台
     if (isActive && isConsoleCollapsed) {
@@ -1822,7 +1933,7 @@ function renderUserConsole() {
     }
     
     // 渲染玩家自己的卡片
-    renderUserPlayerCard(humanPlayer, isActive);
+    renderUserPlayerCard(localPlayer, isActive);
     
     // 更新魔女化进度
     const witchFill = document.getElementById('user-witch-fill');
@@ -1832,17 +1943,17 @@ function renderUserConsole() {
         witchFill.style.backgroundImage = getWitchBarGradient(char);
     }
     if (witchLabel) {
-        witchLabel.innerHTML = `${renderClockDecimal(humanPlayer.witchification, 0.3)}%`;
+        witchLabel.innerHTML = `${renderClockDecimal(localPlayer.witchification, 0.3)}%`;
     }
     
     // 渲染手牌
     renderHandCards();
     
     // 更新魔法按钮状态
-    updateMagicButton(humanPlayer);
+    updateMagicButton(localPlayer);
     
     // 渲染特殊按钮（被动开关、里世界）
-    renderSpecialButtons(humanPlayer);
+    renderSpecialButtons(localPlayer);
 }
 
 // 渲染玩家自己的卡片（横向布局）
@@ -2008,18 +2119,25 @@ function openUserConsole() {
 
 // 渲染手牌
 function renderHandCards() {
-    const humanPlayer = gameState.players.find(p => !p.isAI);
-    if (!humanPlayer) return;
+    // 多人模式：获取本地玩家
+    let localPlayer;
+    if (networkState.mode === 'online') {
+        localPlayer = gameState.players.find(p => p.id === networkState.localPlayerId);
+    } else {
+        localPlayer = gameState.players.find(p => !p.isAI);
+    }
+    if (!localPlayer) return;
     
     const container = document.getElementById('user-hand-cards');
     if (!container) return;
     
-    const humanPlayerIndex = gameState.players.indexOf(humanPlayer);
-    const isMyTurn = gameState.currentPlayerIndex === humanPlayerIndex;
+    const localPlayerIndex = gameState.players.indexOf(localPlayer);
+    const isMyTurn = gameState.currentPlayerIndex === localPlayerIndex && !moveState.isMoving;
     
-    container.innerHTML = humanPlayer.handCards.map((card, idx) => `
+    container.innerHTML = localPlayer.handCards.map((card, idx) => `
         <div class="hand-card ${!isMyTurn ? 'disabled' : 'my-turn'}" 
              onclick="${isMyTurn ? `playCard(${idx})` : ''}"
+             onmouseenter="${isMyTurn ? 'playHoverSFX()' : ''}"
              data-card-index="${idx}">
             ${renderClockNumber(card, 0.5)}
         </div>
@@ -2028,12 +2146,20 @@ function renderHandCards() {
     // 更新魔法按钮的发光状态
     const magicBtn = document.getElementById('btn-cast-magic');
     if (magicBtn) {
-        if (isMyTurn) {
+        const canUseMagic = isMyTurn && canCastMagic(localPlayer);
+        if (canUseMagic) {
             magicBtn.classList.add('my-turn');
+            magicBtn.classList.remove('disabled');
         } else {
             magicBtn.classList.remove('my-turn');
+            if (!isMyTurn) {
+                magicBtn.classList.add('disabled');
+            }
         }
     }
+    
+    // 更新回合提示
+    updateTurnIndicator(isMyTurn);
 }
 
 // 选择手牌（保留用于其他用途）
@@ -2052,8 +2178,30 @@ function updateMagicButton(player) {
     if (!btn || !badge) return;
     
     const cdReady = !player.magicCooldown || player.magicCooldown <= 0;
-    btn.disabled = !cdReady;
+    
+    // 多人模式：检查是否是自己的回合
+    let isMyTurn = true;
+    if (networkState.mode === 'online') {
+        const localPlayerIndex = gameState.players.findIndex(p => p.id === networkState.localPlayerId);
+        isMyTurn = localPlayerIndex === gameState.currentPlayerIndex;
+    } else {
+        const humanPlayerIndex = gameState.players.findIndex(p => !p.isAI);
+        isMyTurn = humanPlayerIndex === gameState.currentPlayerIndex;
+    }
+    
+    btn.disabled = !cdReady || !isMyTurn;
     badge.textContent = cdReady ? '就绪' : `CD: ${player.magicCooldown}`;
+    
+    // 更新按钮样式
+    if (isMyTurn && cdReady && canCastMagic(player)) {
+        btn.classList.add('my-turn');
+        btn.classList.remove('disabled');
+    } else {
+        btn.classList.remove('my-turn');
+        if (!isMyTurn) {
+            btn.classList.add('disabled');
+        }
+    }
 }
 
 // 渲染特殊按钮
@@ -2322,39 +2470,54 @@ function canCastMagic(player) {
 
 // 发动魔法
 function castMagic() {
-    const humanPlayer = gameState.players.find(p => !p.isAI);
-    if (!humanPlayer || !canCastMagic(humanPlayer)) return;
+    // 多人模式：获取本地玩家
+    let localPlayer;
+    if (networkState.mode === 'online') {
+        localPlayer = gameState.players.find(p => p.id === networkState.localPlayerId);
+    } else {
+        localPlayer = gameState.players.find(p => !p.isAI);
+    }
     
-    const char = humanPlayer.character;
+    if (!localPlayer || !canCastMagic(localPlayer)) return;
+    
+    // 多人模式：非房主发送消息
+    if (networkState.mode === 'online' && !networkState.isHost) {
+        sendMessage('cast_magic', {
+            playerId: networkState.localPlayerId
+        });
+        return;
+    }
+    
+    const char = localPlayer.character;
     
     // 魔女化后发动强化魔法
-    if (humanPlayer.isWitchified && char.magicEnhanced) {
-        castEnhancedMagic(humanPlayer);
+    if (localPlayer.isWitchified && char.magicEnhanced) {
+        castEnhancedMagic(localPlayer);
         return;
     }
     
     // 根据角色ID调用对应的魔法效果
     switch (char.id) {
         case 'emma':
-            castMagic_Emma(humanPlayer);
+            castMagic_Emma(localPlayer);
             break;
         case 'hanna':
-            castMagic_Hanna(humanPlayer);
+            castMagic_Hanna(localPlayer);
             break;
         case 'anan':
-            castMagic_Anan(humanPlayer);
+            castMagic_Anan(localPlayer);
             break;
         case 'noah':
-            castMagic_Noah(humanPlayer);
+            castMagic_Noah(localPlayer);
             break;
         case 'arisa':
-            castMagic_Arisa(humanPlayer);
+            castMagic_Arisa(localPlayer);
             break;
         case 'nayeka':
-            castMagic_Nayeka(humanPlayer);
+            castMagic_Nayeka(localPlayer);
             break;
         case 'meruru':
-            castMagic_Meruru(humanPlayer);
+            castMagic_Meruru(localPlayer);
             break;
         default:
             alert(`${char.magicName} 的效果尚未实现`);
@@ -4143,6 +4306,36 @@ function updatePrompt(text) {
     promptEl.textContent = text || `${currentPlayer.name} 的回合 - 请选择要打出的点数牌`;
 }
 
+// 更新回合指示器（多人模式）
+function updateTurnIndicator(isMyTurn) {
+    // 更新提示文字
+    const promptEl = document.getElementById('prompt-text');
+    if (promptEl && networkState.mode === 'online') {
+        const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+        if (isMyTurn) {
+            promptEl.textContent = '你的回合 - 请选择要打出的点数牌';
+            promptEl.classList.remove('waiting');
+            promptEl.classList.add('my-turn');
+        } else {
+            promptEl.textContent = `等待 ${currentPlayer.name} 操作...`;
+            promptEl.classList.add('waiting');
+            promptEl.classList.remove('my-turn');
+        }
+    }
+    
+    // 更新控制台整体状态
+    const console = document.getElementById('user-console');
+    if (console) {
+        if (isMyTurn) {
+            console.classList.add('my-turn');
+            console.classList.remove('waiting-turn');
+        } else {
+            console.classList.remove('my-turn');
+            console.classList.add('waiting-turn');
+        }
+    }
+}
+
 // ========== 分叉点定义 ==========
 const FORK_POINTS = {
     9: { directions: [10, 24], labels: ['继续外环 →', '进入十字 ↓'] },
@@ -4223,6 +4416,63 @@ function processRemoteHannaDirectionSelected(playerId, targetPos) {
     
     // 执行移动动画（executeHannaMove会广播状态）
     animateHannaMove(targetPos);
+}
+
+// 处理远程里世界位置互换（房主处理）
+function processRemoteShadowSwap(playerId, targetPlayers) {
+    if (!targetPlayers || targetPlayers.length !== 2) return;
+    
+    const player1 = gameState.players.find(p => p.id === targetPlayers[0]);
+    const player2 = gameState.players.find(p => p.id === targetPlayers[1]);
+    
+    if (!player1 || !player2) return;
+    
+    // 互换位置
+    const tempPos = player1.position;
+    const tempDir = player1.direction;
+    const tempCame = player1.cameFrom;
+    
+    player1.position = player2.position;
+    player1.direction = player2.direction;
+    player1.cameFrom = player2.cameFrom;
+    
+    player2.position = tempPos;
+    player2.direction = tempDir;
+    player2.cameFrom = tempCame;
+    
+    const nayekaPlayer = gameState.players.find(p => p.character.id === 'nayeka');
+    showMagicCastEffect(nayekaPlayer, '幻视·位置互换', `${player1.name} 和 ${player2.name} 互换了位置！`);
+    
+    // 广播状态
+    broadcastGameState();
+    renderGame();
+    
+    // 执行回调
+    if (gameState.shadowSwapState && gameState.shadowSwapState.callback) {
+        gameState.shadowSwapState.callback();
+    }
+}
+
+// 处理远程里世界强制删除（房主处理）
+function processRemoteShadowDelete(playerId, targetId, cardIndex) {
+    const targetPlayer = gameState.players.find(p => p.id === targetId);
+    if (!targetPlayer || !targetPlayer.evidenceCards[cardIndex]) return;
+    
+    const deletedCard = targetPlayer.evidenceCards[cardIndex];
+    const cardName = EVIDENCE_CARDS[deletedCard].name;
+    targetPlayer.evidenceCards.splice(cardIndex, 1);
+    
+    const nayekaPlayer = gameState.players.find(p => p.character.id === 'nayeka');
+    showMagicCastEffect(nayekaPlayer, '幻视·强制删除', `${targetPlayer.name} 被迫删除了 ${cardName}！`);
+    
+    // 广播状态
+    broadcastGameState();
+    renderGame();
+    
+    // 执行回调
+    if (gameState.shadowDeleteState && gameState.shadowDeleteState.callback) {
+        gameState.shadowDeleteState.callback();
+    }
 }
 
 // 执行出牌逻辑
@@ -4951,6 +5201,141 @@ function processRemoteSelectDirection(playerId, direction) {
     animateMove(direction);
 }
 
+// 处理远程玩家资源选择（房主处理）
+function processRemoteSelectResource(playerId, selection) {
+    const player = gameState.players.find(p => p.id === playerId);
+    if (!player) return;
+    
+    // 检查是否是该玩家的回合
+    const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+    if (currentPlayer.id !== playerId) return;
+    
+    const { type, selected } = selection;
+    
+    // 执行选择
+    if (type === 'basement' && selected !== null) {
+        giveEvidenceCard(player, selected);
+    } else if (type === 'lounge' && selected !== null) {
+        player.evidenceCards.splice(selected, 1);
+    }
+    
+    // 广播状态
+    broadcastGameState();
+    
+    renderGame();
+    
+    // 继续游戏流程（触发回调）
+    if (resourceSelectState.callback) {
+        const callback = resourceSelectState.callback;
+        resourceSelectState.active = false;
+        resourceSelectState.callback = null;
+        callback();
+    }
+}
+
+// 处理远程玩家发动魔法（房主处理）
+function processRemoteCastMagic(playerId, magicData = {}) {
+    const player = gameState.players.find(p => p.id === playerId);
+    if (!player) return;
+    
+    // 检查是否可以发动魔法
+    if (!canCastMagic(player)) {
+        console.log('[多人] 玩家无法发动魔法:', playerId);
+        return;
+    }
+    
+    // 执行魔法
+    executeCastMagic(player, magicData);
+}
+
+// 执行魔法发动（统一入口）
+function executeCastMagic(player, magicData = {}) {
+    const charId = player.character.id;
+    
+    switch (charId) {
+        case 'emma':
+            castMagic_Emma(player);
+            break;
+        case 'hanna':
+            // 汉娜浮空需要特殊处理（步数选择）
+            if (magicData.steps !== undefined) {
+                executeHannaStepSelection(player, magicData.steps, magicData.isEnhanced);
+            } else {
+                castMagic_Hanna(player);
+            }
+            break;
+        case 'noah':
+            castMagic_Noah(player);
+            break;
+        case 'nayeka':
+            if (magicData.targetPlayerId !== undefined) {
+                executeNayekaMagic(player, magicData.targetPlayerId);
+            } else {
+                castMagic_Nayeka(player);
+            }
+            break;
+        case 'arisa':
+            castMagic_Arisa(player);
+            break;
+        case 'meruru':
+            castMagic_Meruru(player);
+            break;
+        // 被动技能角色（不能主动发动）
+        case 'hiro':
+        case 'coco':
+        case 'sherry':
+        case 'anan':
+        case 'leiya':
+        case 'milia':
+        case 'marg':
+            console.log('[魔法] 该角色为被动技能，不能主动发动');
+            break;
+        default:
+            console.log('[魔法] 未知角色:', charId);
+    }
+    
+    // 多人模式：广播状态
+    if (networkState.mode === 'online' && networkState.isHost) {
+        broadcastGameState();
+    }
+}
+
+// 资源选择执行函数
+function executeEvidenceSelection(player, evidenceType, amount) {
+    if (evidenceType === 'physical') {
+        player.physicalEvidence = Math.max(0, player.physicalEvidence + amount);
+    } else if (evidenceType === 'testimonial') {
+        player.testimonialEvidence = Math.max(0, player.testimonialEvidence + amount);
+    }
+    renderGame();
+}
+
+function executeTestimonySelection(player, testimonyType, amount) {
+    if (testimonyType === 'physical') {
+        player.physicalTestimony = Math.max(0, player.physicalTestimony + amount);
+    } else if (testimonyType === 'testimonial') {
+        player.testimonialTestimony = Math.max(0, player.testimonialTestimony + amount);
+    }
+    renderGame();
+}
+
+function executeHeartSelection(player, amount) {
+    player.heartFragments = Math.max(0, player.heartFragments + amount);
+    renderGame();
+}
+
+function executeWitchChangeSelection(player, amount) {
+    changeWitchification(player, amount);
+    renderGame();
+}
+
+function executeCellEffectSelection(player, effectId, data) {
+    // 通用格子效果处理
+    console.log('[格子效果] 执行:', effectId, data);
+    // 根据effectId执行对应逻辑
+    renderGame();
+}
+
 function clearDirectionArrows() {
     document.querySelectorAll('.direction-arrow').forEach(el => el.remove());
     document.querySelectorAll('.grid-cell.fork-highlight').forEach(el => {
@@ -5385,6 +5770,21 @@ function confirmResourceSelect() {
     const selected = resourceSelectState.selected;
     const callback = resourceSelectState.callback;
     
+    // 多人模式：非房主发送选择消息
+    if (networkState.mode === 'online' && !networkState.isHost) {
+        sendMessage('select_resource', {
+            playerId: networkState.localPlayerId,
+            selection: {
+                type: type,
+                selected: selected
+            }
+        });
+        // 关闭弹窗，等待房主处理
+        document.getElementById('resource-modal').classList.add('hidden');
+        resourceSelectState.active = false;
+        return;
+    }
+    
     // 执行选择
     if (type === 'basement' && selected !== null) {
         giveEvidenceCard(player, selected);
@@ -5395,6 +5795,11 @@ function confirmResourceSelect() {
     // 关闭弹窗
     document.getElementById('resource-modal').classList.add('hidden');
     resourceSelectState.active = false;
+    
+    // 多人模式：广播状态
+    if (networkState.mode === 'online' && networkState.isHost) {
+        broadcastGameState();
+    }
     
     renderGame();
     
@@ -7037,6 +7442,30 @@ function processRemoteConfrontationPress(playerId, pressTime) {
     checkAllReacted();
 }
 
+// 处理远程玩家抢夺确认（房主处理）
+function processRemoteConfirmSteal(playerId, selectedIndexes) {
+    const rankings = confrontationState.rankings;
+    const winnerIdx = confrontationState.currentStealPhase;
+    const loserIdx = confrontationState.currentStealPhase + 1;
+    
+    const winner = rankings[winnerIdx];
+    const loser = rankings[loserIdx];
+    
+    // 验证是否是该玩家的抢夺回合
+    if (winner.id !== playerId) return;
+    
+    if (!selectedIndexes || selectedIndexes.length === 0) {
+        // 跳过抢夺
+        confrontationState.currentStealPhase++;
+        startStealPhase();
+        return;
+    }
+    
+    // 使用可抢卡列表中的卡
+    const stolenCards = selectedIndexes.map(idx => confrontationState.currentStealableCards[idx]);
+    executeSteal(winner, loser, stolenCards);
+}
+
 function scheduleAIReaction(aiPlayer) {
     // AI反应时间：灯亮后200-800ms
     const baseReactionTime = 200 + Math.random() * 600;
@@ -7739,6 +8168,19 @@ function confirmSteal() {
     
     const winner = rankings[winnerIdx];
     const loser = rankings[loserIdx];
+    
+    // 多人模式：非房主发送消息
+    if (networkState.mode === 'online' && !networkState.isHost) {
+        sendMessage('confirm_steal', {
+            playerId: networkState.localPlayerId,
+            selectedSteals: selectedSteals.map(s => s.index)
+        });
+        // 移除抢夺界面
+        const stealSelection = document.querySelector('.steal-selection');
+        if (stealSelection) stealSelection.remove();
+        selectedSteals = [];
+        return;
+    }
     
     if (selectedSteals.length === 0) {
         // 跳过抢夺
@@ -8579,6 +9021,20 @@ function confirmShadowSwap() {
     const state = gameState.shadowSwapState;
     if (state.selectedPlayers.length !== 2) return;
     
+    // 多人模式：非房主发送消息
+    if (networkState.mode === 'online' && !networkState.isHost) {
+        sendMessage('shadow_swap', {
+            playerId: networkState.localPlayerId,
+            targetPlayers: state.selectedPlayers
+        });
+        const modal = document.getElementById('shadow-swap-modal');
+        if (modal) {
+            modal.classList.add('hide');
+            setTimeout(() => modal.remove(), 300);
+        }
+        return;
+    }
+    
     const modal = document.getElementById('shadow-swap-modal');
     if (modal) {
         modal.classList.add('hide');
@@ -8608,6 +9064,11 @@ function confirmShadowSwap() {
     
     showMagicCastEffect(gameState.players.find(p => p.character.id === 'nayeka'), 
         '幻视·位置互换', `${player1.name} 和 ${player2.name} 互换了位置！`);
+    
+    // 多人模式：广播状态
+    if (networkState.mode === 'online' && networkState.isHost) {
+        broadcastGameState();
+    }
     
     renderGame();
     
@@ -8725,6 +9186,21 @@ function showShadowDeleteCardSelection(targetPlayer) {
 }
 
 function confirmShadowDelete(targetId, cardIndex) {
+    // 多人模式：非房主发送消息
+    if (networkState.mode === 'online' && !networkState.isHost) {
+        sendMessage('shadow_delete', {
+            playerId: networkState.localPlayerId,
+            targetId: targetId,
+            cardIndex: cardIndex
+        });
+        const modal = document.getElementById('shadow-delete-card-modal');
+        if (modal) {
+            modal.classList.add('hide');
+            setTimeout(() => modal.remove(), 300);
+        }
+        return;
+    }
+    
     const modal = document.getElementById('shadow-delete-card-modal');
     if (modal) {
         modal.classList.add('hide');
@@ -8745,6 +9221,11 @@ function confirmShadowDelete(targetId, cardIndex) {
     
     const nayekaPlayer = gameState.players.find(p => p.character.id === 'nayeka');
     showMagicCastEffect(nayekaPlayer, '幻视·强制删除', `${targetPlayer.name} 被迫删除了 ${cardName}！`);
+    
+    // 多人模式：广播状态
+    if (networkState.mode === 'online' && networkState.isHost) {
+        broadcastGameState();
+    }
     
     renderGame();
     
@@ -9637,64 +10118,85 @@ function renderOnlineCharacterSelect() {
     
     // 更新标题
     const playerName = networkState.players[playerNum]?.name || `玩家${playerNum}`;
-    document.getElementById('char-select-title').textContent = 
-        isMyTurn ? '选择你的角色' : `等待 ${playerName} 选择角色...`;
+    const titleEl = document.getElementById('char-select-title');
+    if (titleEl) {
+        titleEl.textContent = isMyTurn ? '选择你的角色' : `等待 ${playerName} 选择角色...`;
+    }
     
     // 更新进度指示器（菱形样式）
     const progressEl = document.getElementById('char-select-progress');
-    progressEl.innerHTML = '';
-    for (let i = 0; i < gameState.playerCount; i++) {
-        // 添加菱形
-        const diamond = document.createElement('span');
-        diamond.className = 'progress-diamond';
-        if (i < gameState.currentSelectingPlayer) {
-            diamond.classList.add('done');
-        } else if (i === gameState.currentSelectingPlayer) {
-            diamond.classList.add('current');
-        } else {
-            diamond.classList.add('waiting');
-        }
-        progressEl.appendChild(diamond);
-        
-        // 添加连接线（除了最后一个）
-        if (i < gameState.playerCount - 1) {
-            const line = document.createElement('span');
-            line.className = 'progress-line';
+    if (progressEl) {
+        progressEl.innerHTML = '';
+        for (let i = 0; i < gameState.playerCount; i++) {
+            // 添加菱形
+            const diamond = document.createElement('span');
+            diamond.className = 'progress-diamond';
             if (i < gameState.currentSelectingPlayer) {
-                line.classList.add('done');
+                diamond.classList.add('done');
+            } else if (i === gameState.currentSelectingPlayer) {
+                diamond.classList.add('current');
+            } else {
+                diamond.classList.add('waiting');
             }
-            progressEl.appendChild(line);
+            
+            // 添加玩家名标签
+            const label = document.createElement('span');
+            label.className = 'progress-player-label';
+            label.textContent = networkState.players[i + 1]?.name || `P${i + 1}`;
+            diamond.appendChild(label);
+            
+            progressEl.appendChild(diamond);
+            
+            // 添加连接线（除了最后一个）
+            if (i < gameState.playerCount - 1) {
+                const line = document.createElement('span');
+                line.className = 'progress-line';
+                if (i < gameState.currentSelectingPlayer) {
+                    line.classList.add('done');
+                }
+                progressEl.appendChild(line);
+            }
         }
     }
-    // 渲染角色列表
+    
+    // 渲染角色卡片列表（右侧滑出式）
     const listEl = document.getElementById('character-list');
-    listEl.innerHTML = CHARACTERS.map(char => {
-        const isSelected = gameState.selectedCharacters.includes(char.id);
-        const isCurrentSelected = gameState.tempSelectedChar === char.id;
-        const canSelect = isMyTurn && !isSelected;
-        
-        return `
-            <div class="char-select-item ${isSelected ? 'disabled' : ''} ${isCurrentSelected ? 'selected' : ''}" 
-                 data-id="${char.id}"
-                 onclick="${canSelect ? `selectCharacterItem('${char.id}')` : ''}">
-                <span class="char-emoji">${getCharIcon(char, 'small')}</span>
-                <span class="char-name">${char.name}</span>
-                ${isSelected ? '<span class="char-taken">已选</span>' : ''}
-            </div>
-        `;
-    }).join('');
+    if (listEl) {
+        listEl.innerHTML = CHARACTERS.map(char => {
+            const isSelected = gameState.selectedCharacters.includes(char.id);
+            const isCurrentSelected = gameState.tempSelectedChar === char.id;
+            const isMultiplayerDisabled = !char.multiplayerReady;
+            const isDisabled = isSelected || isMultiplayerDisabled;
+            const canSelect = isMyTurn && !isDisabled;
+            
+            // 获取选择该角色的玩家名
+            let takenByName = '';
+            if (isSelected) {
+                const takenPlayer = Object.values(networkState.players).find(p => p.character === char.id);
+                takenByName = takenPlayer?.name || '已选';
+            }
+            
+            const charColor = char.barColors ? char.barColors[0] : '#9b59b6';
+            
+            return `
+                <div class="char-card ${isSelected ? 'disabled' : ''} ${isCurrentSelected ? 'selected' : ''} ${isMultiplayerDisabled ? 'multiplayer-disabled' : ''}" 
+                     style="--char-color: ${charColor};"
+                     data-id="${char.id}"
+                     onclick="${canSelect ? `playFlipSFX(); selectCharacterItem('${char.id}')` : ''}"
+                     onmouseenter="${canSelect ? 'playHoverSFX()' : ''}">
+                    <div class="char-card-avatar">
+                        <img src="${getCharIcon(char, 'small')}" alt="${char.name}">
+                    </div>
+                    <span class="char-card-name">${char.name}</span>
+                    ${isSelected ? `<span class="char-card-taken">${takenByName}</span>` : ''}
+                    ${isMultiplayerDisabled ? `<span class="char-card-taken">多人暂不可用</span>` : ''}
+                </div>
+            `;
+        }).join('');
+    }
     
     // 更新详情面板
     updateCharacterDetail(gameState.tempSelectedChar);
-    
-    // 如果不是自己的回合，隐藏确认按钮
-    const detailEl = document.getElementById('character-detail');
-    if (!isMyTurn && detailEl) {
-        const confirmBtn = detailEl.querySelector('.confirm-char-btn');
-        if (confirmBtn) {
-            confirmBtn.style.display = 'none';
-        }
-    }
 }
 
 // 多人模式确认角色选择
@@ -9704,31 +10206,45 @@ function confirmOnlineCharacterSelect() {
         return;
     }
     
-    // 发送角色选择
+    // 检查是否是自己的回合
+    const playerNum = gameState.currentSelectingPlayer + 1;
+    if (playerNum !== networkState.localPlayerId) {
+        console.log('[角色选择] 不是自己的回合');
+        return;
+    }
+    
+    const selectedChar = gameState.tempSelectedChar;
+    
+    // 触发滑出动画
+    const showcaseContent = document.getElementById('showcase-content');
+    const showcaseBg = document.getElementById('showcase-bg');
+    
+    if (showcaseContent) {
+        showcaseContent.classList.remove('active');
+        showcaseContent.classList.add('slide-out');
+    }
+    
+    setTimeout(() => {
+        if (showcaseBg) {
+            showcaseBg.classList.remove('active');
+            showcaseBg.classList.add('slide-out');
+        }
+    }, 300);
+    
+    // 发送角色选择消息（状态更新由handleCharacterSelected统一处理）
     sendMessage('character_selected', {
         playerId: networkState.localPlayerId,
-        characterId: gameState.tempSelectedChar
+        characterId: selectedChar
     }, 'room');
     
-    // 记录选择
-    gameState.selectedCharacters.push(gameState.tempSelectedChar);
-    networkState.players[networkState.localPlayerId].character = gameState.tempSelectedChar;
+    // 清空临时选择
     gameState.tempSelectedChar = null;
-    gameState.currentSelectingPlayer++;
-    
-    // 检查是否所有人都选完了
-    if (gameState.currentSelectingPlayer >= gameState.playerCount) {
-        // 房主初始化游戏
-        if (networkState.isHost) {
-            initOnlineGame();
-        }
-    } else {
-        renderOnlineCharacterSelect();
-    }
 }
 
 // 初始化多人游戏
 function initOnlineGame() {
+    console.log('[多人游戏] 房主初始化游戏...');
+    
     // 重置排名计数器
     currentRank = 1;
     
@@ -9737,6 +10253,10 @@ function initOnlineGame() {
     
     Object.values(networkState.players).forEach((netPlayer, idx) => {
         const char = CHARACTERS.find(c => c.id === netPlayer.character);
+        if (!char) {
+            console.error(`[多人游戏] 找不到角色: ${netPlayer.character}`);
+            return;
+        }
         const player = createPlayer(netPlayer.id, netPlayer.name, char, false);
         player.isAI = false;  // 多人模式没有AI
         gameState.players.push(player);
@@ -9750,19 +10270,24 @@ function initOnlineGame() {
     
     // 初始化回合
     gameState.currentRound = 1;
-    gameState.totalSubRounds = Math.floor(Math.random() * 4) + 2;
+    gameState.totalSubRounds = Math.floor(Math.random() * 3) + 2; // 2-4
     gameState.currentSubRound = 1;
     gameState.currentPlayerIndex = 0;
     
     // 发牌
     dealCards();
     
-    // 广播游戏状态
-    broadcastGameState();
+    // 广播完整游戏状态给所有玩家
+    sendMessage('game_start', {
+        phase: 'game',
+        gameState: getSerializableGameState()
+    }, 'room');
     
-    // 显示游戏界面
-    showScreen('game-screen');
-    renderGame();
+    // 显示角色出场转场动画
+    showCharacterIntroTransition(() => {
+        showScreen('game-screen');
+        renderGame();
+    });
 }
 
 // 同步游戏状态（非房主接收）
@@ -9802,18 +10327,28 @@ function syncGameState(state) {
 }
 
 // 开始在线游戏（非房主接收）
-function startOnlineGame(state) {
+function startOnlineGame(message) {
+    console.log('[多人游戏] 收到游戏开始:', message);
     gameState.gameMode = 'multi';
     
-    if (state.phase === 'character_select') {
-        gameState.playerCount = state.playerCount;
+    // 角色选择阶段
+    if (message.phase === 'character_select') {
+        gameState.playerCount = message.playerCount;
         gameState.currentSelectingPlayer = 0;
         gameState.selectedCharacters = [];
+        gameState.tempSelectedChar = null;
         showScreen('character-screen');
         renderOnlineCharacterSelect();
-    } else if (state.gameState) {
-        syncGameState(state.gameState);
-        showScreen('game-screen');
+    } 
+    // 游戏进行阶段
+    else if (message.phase === 'game' && message.gameState) {
+        syncGameState(message.gameState);
+        
+        // 显示角色出场转场动画
+        showCharacterIntroTransition(() => {
+            showScreen('game-screen');
+            renderGame();
+        });
     }
 }
 
@@ -10138,6 +10673,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // 根据时间自动设置日夜模式
     if (typeof autoSetDayNight === 'function') {
         autoSetDayNight();
+    }
+    
+    // 初始化玩家名称输入框
+    if (typeof initPlayerNameInput === 'function') {
+        initPlayerNameInput();
     }
     
     // 首次显示不使用转场
