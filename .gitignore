@@ -1,0 +1,3 @@
+# local dev tooling (static preview server, verification harnesses, scratch scripts)
+.dev/
+node_modules/

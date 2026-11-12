@@ -222,7 +222,7 @@
         }
         .info-panel {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(6, 1fr);
             gap: 15px;
         }
         .info-item {
@@ -238,7 +238,7 @@
             transform: translateY(-3px);
         }
         .info-item .value {
-            font-size: 1.8em;
+            font-size: 1.45em;
             font-weight: bold;
             background: linear-gradient(90deg, #00d4ff, #7b2cbf);
             background-clip: text;
@@ -346,7 +346,7 @@
                 position: static;
             }
             .info-panel {
-                grid-template-columns: repeat(2, 1fr);
+                grid-template-columns: repeat(3, 1fr);
             }
         }
         @media (max-width: 600px) {
@@ -491,9 +491,9 @@
                     <label>预设图片</label>
                     <select id="presetImageSelect">
                         <option value="">-- 选择预设 --</option>
-                        <option value="image/Still_040_001.png">Still_040_001</option>
-                        <option value="image/Still_350_001.png">Still_350_001</option>
-                        <option value="image/Still_400_002_1.png">Still_400_002_1</option>
+                        <option value="image/Still_040_001.webp">Still_040_001</option>
+                        <option value="image/Still_350_001.webp">Still_350_001</option>
+                        <option value="image/Still_400_002_1.webp">Still_400_002_1</option>
                     </select>
                 </div>
                 
@@ -576,6 +576,14 @@
                         <div class="label">交换次数</div>
                     </div>
                     <div class="info-item">
+                        <div class="value" id="writes">0</div>
+                        <div class="label">写入次数</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="value" id="elapsed">0.0s</div>
+                        <div class="label">已用时</div>
+                    </div>
+                    <div class="info-item">
                         <div class="value" id="currentAlgo">-</div>
                         <div class="label">当前算法</div>
                     </div>
@@ -598,20 +606,29 @@
     </div>
 
     <script>
-        // 全局变量
+        // ================= 全局状态 =================
         let originalImage = null;
         let audioContext = null;
+        let masterGain = null;
         let audioBuffer = null;
         let slices = [];
         let sliceOrder = [];
+        // 渲染覆盖层：归并在「已确定前缀」的生长过程中用，算法状态 sliceOrder 不动
+        let displayOrder = null;
         let isRunning = false;
         let isStopped = false;
         let delay = 200;
         let comparisons = 0;
         let swaps = 0;
+        let writes = 0;
         let sliceCount = 50;
+        let activeSources = new Set();
+        let totalSteps = 0;
+        let doneSteps = 0;
+        let runStartedAt = 0;
+        let elapsedTimer = null;
 
-        // DOM元素
+        // ================= DOM =================
         const canvas = document.getElementById('imageCanvas');
         const ctx = canvas.getContext('2d');
         const imageInput = document.getElementById('imageInput');
@@ -628,36 +645,121 @@
         const stopBtn = document.getElementById('stopBtn');
         const placeholder = document.getElementById('placeholder');
         const sliceNumbersDiv = document.getElementById('sliceNumbers');
+        const comparisonsEl = document.getElementById('comparisons');
+        const swapsEl = document.getElementById('swaps');
+        const writesEl = document.getElementById('writes');
+        const elapsedEl = document.getElementById('elapsed');
+        const statusEl = document.getElementById('status');
+        const currentAlgoEl = document.getElementById('currentAlgo');
+        const progressFill = document.getElementById('progressFill');
 
-        // 事件监听
+        // ================= 事件监听 =================
         imageInput.addEventListener('change', handleImageUpload);
         audioInput.addEventListener('change', handleAudioUpload);
         presetImageSelect.addEventListener('change', handlePresetImage);
         presetAudioSelect.addEventListener('change', handlePresetAudio);
         delaySlider.addEventListener('input', () => {
-            delay = parseInt(delaySlider.value);
+            delay = parseInt(delaySlider.value, 10);
             delayValue.textContent = delay + 'ms';
         });
         sliceSlider.addEventListener('input', () => {
-            sliceCount = parseInt(sliceSlider.value);
+            if (isRunning) return;
+            sliceCount = parseInt(sliceSlider.value, 10);
             sliceValueSpan.textContent = sliceCount;
             if (originalImage) {
                 initializeSlices();
+                resetRunState();
             }
         });
         shuffleBtn.addEventListener('click', shuffleSlices);
         startBtn.addEventListener('click', startSorting);
         stopBtn.addEventListener('click', stopSorting);
 
-        // 处理预设图片选择
+        // ================= 音频 =================
+        function ensureAudioGraph() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                masterGain = audioContext.createGain();
+                masterGain.gain.value = 0.9;
+                masterGain.connect(audioContext.destination);
+            }
+            return audioContext;
+        }
+
+        function stopAllAudio() {
+            for (const source of activeSources) {
+                try { source.stop(); } catch (e) { /* 已停止 */ }
+            }
+            activeSources.clear();
+        }
+
+        // 播放第 value 片（原始横向位置）对应的音频片段
+        // 加 8ms 淡入/淡出包络，避免直接截断 PCM 造成的爆音
+        function playAudioSlice(value) {
+            if (!audioBuffer || !audioContext) return;
+            if (!Number.isFinite(value) || value < 0) return;
+
+            const clipDuration = Math.max(delay / 1000, 0.03);
+            const offset = (value / sliceCount) * audioBuffer.duration;
+            if (offset >= audioBuffer.duration) return;
+
+            const playable = Math.min(clipDuration, audioBuffer.duration - offset);
+            const t0 = audioContext.currentTime;
+            const fade = Math.min(0.008, playable / 4);
+
+            const source = audioContext.createBufferSource();
+            source.buffer = audioBuffer;
+
+            const gain = audioContext.createGain();
+            gain.gain.setValueAtTime(0, t0);
+            gain.gain.linearRampToValueAtTime(1, t0 + fade);
+            gain.gain.setValueAtTime(1, t0 + Math.max(fade, playable - fade));
+            gain.gain.linearRampToValueAtTime(0, t0 + playable);
+
+            source.connect(gain);
+            gain.connect(masterGain);
+
+            source.onended = () => {
+                activeSources.delete(source);
+                try { source.disconnect(); gain.disconnect(); } catch (e) { /* 忽略 */ }
+            };
+
+            activeSources.add(source);
+            source.start(t0, offset, playable);
+        }
+
+        function playFullAudio() {
+            if (!audioBuffer || !audioContext) return;
+            stopAllAudio();
+
+            const source = audioContext.createBufferSource();
+            source.buffer = audioBuffer;
+            source.connect(masterGain);
+            source.onended = () => activeSources.delete(source);
+
+            activeSources.add(source);
+            source.start(0);
+        }
+
+        // ================= 资源载入 =================
+        function busyGuard() {
+            // 运行中不接受新资源，避免切片索引与生成器状态脱节
+            return isRunning;
+        }
+
         function handlePresetImage() {
+            if (busyGuard()) {
+                presetImageSelect.value = '';
+                return;
+            }
             const src = presetImageSelect.value;
             if (!src) return;
-            
+
             const img = new Image();
             img.onload = () => {
                 originalImage = img;
                 initializeSlices();
+                resetRunState();
                 checkReady();
             };
             img.onerror = () => {
@@ -666,19 +768,21 @@
             img.src = src;
         }
 
-        // 处理预设音频选择
         async function handlePresetAudio() {
+            if (busyGuard()) {
+                presetAudioSelect.value = '';
+                return;
+            }
             const src = presetAudioSelect.value;
             if (!src) return;
-            
+
             try {
-                if (!audioContext) {
-                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                }
-                
+                const audioCtx = ensureAudioGraph();
                 const response = await fetch(src);
+                if (!response.ok) throw new Error('HTTP ' + response.status);
                 const arrayBuffer = await response.arrayBuffer();
-                audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+                resetRunState();
                 checkReady();
             } catch (e) {
                 console.error('音频加载失败:', e);
@@ -686,19 +790,23 @@
             }
         }
 
-        // 处理图片上传
         function handleImageUpload(e) {
+            if (busyGuard()) {
+                e.target.value = '';
+                return;
+            }
             const file = e.target.files[0];
             if (!file) return;
-            
-            presetImageSelect.value = ''; // 清除预设选择
-            
+
+            presetImageSelect.value = '';
+
             const reader = new FileReader();
             reader.onload = (event) => {
                 const img = new Image();
                 img.onload = () => {
                     originalImage = img;
                     initializeSlices();
+                    resetRunState();
                     checkReady();
                 };
                 img.src = event.target.result;
@@ -706,448 +814,570 @@
             reader.readAsDataURL(file);
         }
 
-        // 处理音频上传
         async function handleAudioUpload(e) {
+            if (busyGuard()) {
+                e.target.value = '';
+                return;
+            }
             const file = e.target.files[0];
             if (!file) return;
-            
-            presetAudioSelect.value = ''; // 清除预设选择
-            
-            if (!audioContext) {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+            presetAudioSelect.value = '';
+
+            try {
+                const audioCtx = ensureAudioGraph();
+                const arrayBuffer = await file.arrayBuffer();
+                audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+                resetRunState();
+                checkReady();
+            } catch (e) {
+                console.error('音频解码失败:', e);
+                alert('音频解码失败');
             }
-            
-            const arrayBuffer = await file.arrayBuffer();
-            audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-            checkReady();
         }
 
-        // 检查是否准备就绪
         function checkReady() {
-            const ready = originalImage && audioBuffer;
+            const ready = Boolean(originalImage && audioBuffer);
             shuffleBtn.disabled = !ready;
             if (ready) {
                 placeholder.style.display = 'none';
-                document.getElementById('status').textContent = '已就绪';
+                statusEl.textContent = '已就绪';
             }
         }
 
-        // 初始化切片
+        // 换资源后把一次运行的统计/进度清干净
+        function resetRunState() {
+            stopAllAudio();
+            totalSteps = 0;
+            resetStats();
+            startBtn.disabled = true;
+            if (!isRunning) statusEl.textContent = originalImage && audioBuffer ? '已就绪（请先打乱）' : '请选择资源';
+        }
+
+        // ================= 切片 =================
         function initializeSlices() {
             if (!originalImage) return;
-            
+
             const maxWidth = 1000;
             const scale = Math.min(1, maxWidth / originalImage.width);
-            canvas.width = originalImage.width * scale;
-            canvas.height = originalImage.height * scale;
-            
-            const sliceWidth = canvas.width / sliceCount;
+            canvas.width = Math.round(originalImage.width * scale);
+            canvas.height = Math.round(originalImage.height * scale);
+
             slices = [];
             sliceOrder = [];
-            
-            // 创建临时canvas来获取切片
+
             const tempCanvas = document.createElement('canvas');
             tempCanvas.width = originalImage.width;
             tempCanvas.height = originalImage.height;
             const tempCtx = tempCanvas.getContext('2d');
             tempCtx.drawImage(originalImage, 0, 0);
-            
+
             const origSliceWidth = originalImage.width / sliceCount;
-            
+
             for (let i = 0; i < sliceCount; i++) {
+                const sx = Math.round(i * origSliceWidth);
+                const ex = i === sliceCount - 1 ? originalImage.width : Math.round((i + 1) * origSliceWidth);
+                const sw = Math.max(1, ex - sx);
+
                 const sliceCanvas = document.createElement('canvas');
-                sliceCanvas.width = origSliceWidth;
+                sliceCanvas.width = sw;
                 sliceCanvas.height = originalImage.height;
                 const sliceCtx = sliceCanvas.getContext('2d');
-                sliceCtx.drawImage(tempCanvas, 
-                    i * origSliceWidth, 0, origSliceWidth, originalImage.height,
-                    0, 0, origSliceWidth, originalImage.height
+                sliceCtx.drawImage(tempCanvas,
+                    sx, 0, sw, originalImage.height,
+                    0, 0, sw, originalImage.height
                 );
+
                 slices.push({
                     index: i,
                     canvas: sliceCanvas
                 });
                 sliceOrder.push(i);
             }
-            
+
+            displayOrder = null;
             renderSlices();
-            updateSliceNumbers();
         }
 
-        // 渲染切片
-        function renderSlices(activeIndices = [], comparingIndices = [], sortedIndices = []) {
+        // sortedRange 为闭区间 [from, to]，标记已经落到最终位置的切片
+        function renderSlices(activeIndices = [], comparingIndices = [], sortedRange = null) {
             if (slices.length === 0) return;
-            
-            const sliceWidth = canvas.width / sliceCount;
+
+            const view = displayOrder || sliceOrder;
+            const sliceWidth = canvas.width / view.length;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            for (let i = 0; i < sliceOrder.length; i++) {
-                const sliceIdx = sliceOrder[i];
-                const slice = slices[sliceIdx];
-                ctx.drawImage(slice.canvas, 
+
+            for (let i = 0; i < view.length; i++) {
+                const slice = slices[view[i]];
+                if (!slice) continue;
+                const x = i * sliceWidth;
+                const w = (i === view.length - 1) ? (canvas.width - x) : sliceWidth;
+                ctx.drawImage(slice.canvas,
                     0, 0, slice.canvas.width, slice.canvas.height,
-                    i * sliceWidth, 0, sliceWidth, canvas.height
+                    x, 0, w, canvas.height
                 );
             }
-            
-            updateSliceNumbers(activeIndices, comparingIndices, sortedIndices);
+
+            updateSliceNumbers(activeIndices, comparingIndices, sortedRange);
         }
 
-        // 更新切片序号显示
-        function updateSliceNumbers(activeIndices = [], comparingIndices = [], sortedIndices = []) {
+        function updateSliceNumbers(activeIndices = [], comparingIndices = [], sortedRange = null) {
+            const view = displayOrder || sliceOrder;
             sliceNumbersDiv.innerHTML = '';
-            for (let i = 0; i < sliceOrder.length; i++) {
+            for (let i = 0; i < view.length; i++) {
                 const div = document.createElement('div');
                 div.className = 'slice-num';
-                div.textContent = sliceOrder[i];
-                
+                div.textContent = view[i];
+
                 if (activeIndices.includes(i)) div.classList.add('active');
-                if (comparingIndices.includes(i)) div.classList.add('comparing');
-                if (sortedIndices.includes(i)) div.classList.add('sorted');
-                
+                else if (comparingIndices.includes(i)) div.classList.add('comparing');
+
+                if (sortedRange && i >= sortedRange[0] && i <= sortedRange[1]) {
+                    div.classList.add('sorted');
+                }
+
                 sliceNumbersDiv.appendChild(div);
             }
         }
 
-        // 打乱切片
-        function shuffleSlices() {
-            for (let i = sliceOrder.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [sliceOrder[i], sliceOrder[j]] = [sliceOrder[j], sliceOrder[i]];
+        // ================= 排序算法（生成器）=================
+        // 每个生成器原地修改 order，并在**每一个可视步骤**yield 一次：
+        //   { active: 位置数组, comparing: 位置数组, sortedRange: [from,to]|null, play: 切片值 }
+        // 统计计数累加到 st 上。这样「预演数步数」和「播放动画」跑的是同一份代码，
+        // 进度条口径不可能漂移，且每个 yield 边界上 order 都是合法排列。
+        function* selectionSort(order, st) {
+            const n = order.length;
+            for (let i = 0; i < n - 1; i++) {
+                let minIdx = i;
+                for (let j = i + 1; j < n; j++) {
+                    st.comparisons++;
+                    const value = order[j];
+                    const isSmaller = value < order[minIdx];
+                    yield {
+                        active: [minIdx],
+                        comparing: [j],
+                        sortedRange: i > 0 ? [0, i - 1] : null,
+                        play: value
+                    };
+                    if (isSmaller) minIdx = j;
+                }
+
+                if (minIdx !== i) {
+                    [order[i], order[minIdx]] = [order[minIdx], order[i]];
+                    st.swaps++;
+                    st.writes += 2;
+                    yield {
+                        active: [i, minIdx],
+                        comparing: [],
+                        sortedRange: [0, i],
+                        play: order[i]
+                    };
+                } else {
+                    yield {
+                        active: [i],
+                        comparing: [],
+                        sortedRange: [0, i],
+                        play: order[i]
+                    };
+                }
             }
-            renderSlices();
-            startBtn.disabled = false;
-            resetStats();
-            document.getElementById('status').textContent = '已打乱';
         }
 
-        // 播放音频片段
-        function playAudioSlice(sliceIndex) {
-            if (!audioBuffer || !audioContext) return;
-            
-            const source = audioContext.createBufferSource();
-            source.buffer = audioBuffer;
-            source.connect(audioContext.destination);
-            
-            const startTime = (sliceIndex / sliceCount) * audioBuffer.duration;
-            const duration = delay / 1000;
-            
-            source.start(0, startTime, duration);
+        // 插入排序用「相邻交换」实现：任意 yield 边界上都是合法排列，
+        // 中途停止不会留下重复值，且每次比较最多一次交换，交换次数是真实交换次数。
+        function* insertionSort(order, st) {
+            const n = order.length;
+            for (let i = 1; i < n; i++) {
+                let j = i;
+                let shifting = true;
+                while (j > 0 && shifting) {
+                    st.comparisons++;
+                    if (order[j - 1] > order[j]) {
+                        [order[j - 1], order[j]] = [order[j], order[j - 1]];
+                        st.swaps++;
+                        st.writes += 2;
+                    } else {
+                        shifting = false;
+                    }
+                    yield {
+                        active: [j - 1],
+                        comparing: [j],
+                        sortedRange: null,
+                        play: order[j - 1]
+                    };
+                    j--;
+                }
+            }
         }
 
-        // 播放完整音频
-        function playFullAudio() {
-            if (!audioBuffer || !audioContext) return;
-            
-            const source = audioContext.createBufferSource();
-            source.buffer = audioBuffer;
-            source.connect(audioContext.destination);
-            source.start(0);
+        function* quickSort(order, st) {
+            if (order.length > 1) {
+                yield* quickRange(order, st, 0, order.length - 1);
+            }
         }
 
-        // 延迟函数
+        function* quickRange(order, st, low, high) {
+            if (low >= high) return;
+
+            const pivot = order[high];
+            let i = low - 1;
+
+            for (let j = low; j < high; j++) {
+                st.comparisons++;
+                const value = order[j];
+                const isLess = value < pivot;
+                if (isLess) {
+                    i++;
+                    [order[i], order[j]] = [order[j], order[i]];
+                    st.swaps++;
+                    st.writes += 2;
+                }
+                yield {
+                    active: [i >= low ? i : low],
+                    comparing: [j, high],
+                    sortedRange: null,
+                    play: value
+                };
+            }
+
+            [order[i + 1], order[high]] = [order[high], order[i + 1]];
+            st.swaps++;
+            st.writes += 2;
+            const pivotPos = i + 1;
+            yield {
+                active: [pivotPos],
+                comparing: [high],
+                sortedRange: null,
+                play: order[pivotPos]
+            };
+
+            yield* quickRange(order, st, low, pivotPos - 1);
+            yield* quickRange(order, st, pivotPos + 1, high);
+        }
+
+        function* mergeSort(order, st) {
+            if (order.length > 1) {
+                yield* mergeRange(order, st, 0, order.length - 1);
+            }
+        }
+
+        function* mergeRange(order, st, left, right) {
+            if (left >= right) return;
+            const mid = (left + right) >> 1;
+            yield* mergeRange(order, st, left, mid);
+            yield* mergeRange(order, st, mid + 1, right);
+            yield* mergeStep(order, st, left, mid, right);
+        }
+
+        function* mergeStep(order, st, left, mid, right) {
+            const leftArr = order.slice(left, mid + 1);
+            const rightArr = order.slice(mid + 1, right + 1);
+            const merged = [];
+            // 归并是「写入」而非交换。为了在任意时刻都不破坏 order 是合法排列这一前提，
+            // 已确定的前缀只写进渲染覆盖层 displayOrder，整块算完后一次性原子提交。
+            displayOrder = order.slice();
+
+            try {
+                let i = 0;
+                let j = 0;
+
+                while (i < leftArr.length && j < rightArr.length) {
+                    st.comparisons++;
+                    const takeLeft = leftArr[i] <= rightArr[j];
+                    const value = takeLeft ? leftArr[i] : rightArr[j];
+                    const fromPos = takeLeft ? left + i : mid + 1 + j;
+                    if (takeLeft) i++; else j++;
+
+                    merged.push(value);
+                    displayOrder[left + merged.length - 1] = value;
+                    st.writes++;
+
+                    yield {
+                        active: [left + merged.length - 1],
+                        comparing: [fromPos],
+                        sortedRange: null,
+                        play: value
+                    };
+                }
+
+                while (i < leftArr.length) {
+                    const value = leftArr[i++];
+                    merged.push(value);
+                    displayOrder[left + merged.length - 1] = value;
+                    st.writes++;
+                    yield { active: [left + merged.length - 1], comparing: [], sortedRange: null, play: value };
+                }
+
+                while (j < rightArr.length) {
+                    const value = rightArr[j++];
+                    merged.push(value);
+                    displayOrder[left + merged.length - 1] = value;
+                    st.writes++;
+                    yield { active: [left + merged.length - 1], comparing: [], sortedRange: null, play: value };
+                }
+
+                // 原子提交：这一步不 yield，因此对观察者而言顺序连续性从未被破坏
+                for (let t = 0; t < merged.length; t++) {
+                    order[left + t] = merged[t];
+                }
+            } finally {
+                displayOrder = null;
+            }
+        }
+
+        function* heapSort(order, st) {
+            const n = order.length;
+
+            for (let i = (n >> 1) - 1; i >= 0; i--) {
+                yield* heapify(order, st, n, i, null);
+            }
+
+            for (let end = n - 1; end > 0; end--) {
+                [order[0], order[end]] = [order[end], order[0]];
+                st.swaps++;
+                st.writes += 2;
+                yield {
+                    active: [0, end],
+                    comparing: [],
+                    sortedRange: [end, n - 1],
+                    play: order[0]
+                };
+                yield* heapify(order, st, end, 0, [end, n - 1]);
+            }
+        }
+
+        function* heapify(order, st, n, i, sortedRange) {
+            let largest = i;
+            const left = 2 * i + 1;
+            const right = 2 * i + 2;
+            const compared = [];
+
+            if (left < n) {
+                st.comparisons++;
+                compared.push(left);
+                if (order[left] > order[largest]) largest = left;
+            }
+
+            if (right < n) {
+                st.comparisons++;
+                compared.push(right);
+                if (order[right] > order[largest]) largest = right;
+            }
+
+            if (compared.length > 0) {
+                yield {
+                    active: [i],
+                    comparing: compared,
+                    sortedRange: sortedRange,
+                    play: order[largest]
+                };
+            }
+
+            if (largest !== i) {
+                [order[i], order[largest]] = [order[largest], order[i]];
+                st.swaps++;
+                st.writes += 2;
+                yield {
+                    active: [i, largest],
+                    comparing: [],
+                    sortedRange: sortedRange,
+                    play: order[largest]
+                };
+                yield* heapify(order, st, n, largest, sortedRange);
+            }
+        }
+
+        function makeGenerator(name, order, st) {
+            switch (name) {
+                case 'insertion': return insertionSort(order, st);
+                case 'quick': return quickSort(order, st);
+                case 'merge': return mergeSort(order, st);
+                case 'heap': return heapSort(order, st);
+                case 'selection':
+                default: return selectionSort(order, st);
+            }
+        }
+
+        // 用同一份生成器在副本上预演一次，得到精确总步数
+        function countSteps(name) {
+            const probe = sliceOrder.slice();
+            const st = { comparisons: 0, swaps: 0, writes: 0 };
+            let steps = 0;
+            for (const _step of makeGenerator(name, probe, st)) {
+                steps++;
+            }
+            return steps;
+        }
+
+        // ================= 主流程 =================
         function sleep(ms) {
             return new Promise(resolve => setTimeout(resolve, ms));
         }
 
-        // 重置统计
+        function formatElapsed(ms) {
+            const total = ms / 1000;
+            if (total < 60) return total.toFixed(1) + 's';
+            const m = Math.floor(total / 60);
+            const s = total - m * 60;
+            return m + 'm' + s.toFixed(0).padStart(2, '0') + 's';
+        }
+
+        function startElapsedTimer() {
+            stopElapsedTimer();
+            elapsedTimer = setInterval(() => {
+                elapsedEl.textContent = formatElapsed(performance.now() - runStartedAt);
+            }, 100);
+        }
+
+        function stopElapsedTimer() {
+            if (elapsedTimer !== null) {
+                clearInterval(elapsedTimer);
+                elapsedTimer = null;
+            }
+        }
+
+        function updateStats() {
+            comparisonsEl.textContent = comparisons;
+            swapsEl.textContent = swaps;
+            writesEl.textContent = writes;
+        }
+
         function resetStats() {
             comparisons = 0;
             swaps = 0;
-            document.getElementById('comparisons').textContent = '0';
-            document.getElementById('swaps').textContent = '0';
-            document.getElementById('progressFill').style.width = '0%';
+            writes = 0;
+            doneSteps = 0;
+            updateStats();
+            elapsedEl.textContent = '0.0s';
+            updateProgressUI();
         }
 
-        // 更新统计
-        function updateStats() {
-            document.getElementById('comparisons').textContent = comparisons;
-            document.getElementById('swaps').textContent = swaps;
+        // 进度 = 已完成步骤 / 预演得到的总步骤，任何算法都单调推进到 100%
+        function updateProgressUI() {
+            let percent = 0;
+            if (totalSteps > 0) {
+                percent = Math.min(100, (doneSteps / totalSteps) * 100);
+            }
+            progressFill.style.width = percent.toFixed(2) + '%';
         }
 
-        // 停止排序
-        function stopSorting() {
-            isStopped = true;
-            isRunning = false;
-            stopBtn.disabled = true;
+        function applyStep(step, st) {
+            comparisons = st.comparisons;
+            swaps = st.swaps;
+            writes = st.writes;
+
+            renderSlices(step.active || [], step.comparing || [], step.sortedRange || null);
+            if (step.play !== undefined && step.play !== null) {
+                playAudioSlice(step.play);
+            }
+
+            updateStats();
+            doneSteps++;
+            updateProgressUI();
+        }
+
+        function shuffleSlices() {
+            if (isRunning) return;
+
+            for (let i = sliceOrder.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [sliceOrder[i], sliceOrder[j]] = [sliceOrder[j], sliceOrder[i]];
+            }
+
+            stopAllAudio();
+            displayOrder = null;
+            renderSlices();
             startBtn.disabled = false;
-            shuffleBtn.disabled = false;
-            document.getElementById('status').textContent = '已停止';
+            totalSteps = 0;
+            resetStats();
+            statusEl.textContent = '已打乱';
         }
 
-        // 开始排序
+        function stopSorting() {
+            if (!isRunning) return;
+            isStopped = true;
+            stopBtn.disabled = true;
+            statusEl.textContent = '正在停止...';
+            stopAllAudio();
+        }
+
         async function startSorting() {
             if (isRunning) return;
-            
+            if (sliceOrder.length < 2) return;
+
             isRunning = true;
             isStopped = false;
             startBtn.disabled = true;
             shuffleBtn.disabled = true;
             stopBtn.disabled = false;
+            sliceSlider.disabled = true;
+            algorithmSelect.disabled = true;
+
+            stopAllAudio();
+            displayOrder = null;
             resetStats();
-            
+
             const algorithm = algorithmSelect.value;
-            document.getElementById('currentAlgo').textContent = algorithmSelect.options[algorithmSelect.selectedIndex].text;
-            document.getElementById('status').textContent = '排序中...';
-            
-            // 恢复音频上下文
+            const algorithmName = algorithmSelect.options[algorithmSelect.selectedIndex].text;
+            currentAlgoEl.textContent = algorithmName;
+            statusEl.textContent = '排序中...';
+
             if (audioContext && audioContext.state === 'suspended') {
-                await audioContext.resume();
+                try { await audioContext.resume(); } catch (e) { /* 忽略 */ }
             }
-            
+
+            totalSteps = countSteps(algorithm);
+            doneSteps = 0;
+            updateProgressUI();
+
+            runStartedAt = performance.now();
+            startElapsedTimer();
+
+            const st = { comparisons: 0, swaps: 0, writes: 0 };
+            const gen = makeGenerator(algorithm, sliceOrder, st);
+
             try {
-                switch (algorithm) {
-                    case 'selection': await selectionSort(); break;
-                    case 'insertion': await insertionSort(); break;
-                    case 'quick': await quickSort(0, sliceOrder.length - 1); break;
-                    case 'merge': await mergeSort(0, sliceOrder.length - 1); break;
-                    case 'heap': await heapSort(); break;
+                let step = gen.next();
+                while (!step.done) {
+                    applyStep(step.value, st);
+                    await sleep(delay);
+                    if (isStopped) {
+                        gen.return();       // 让生成器的 finally 收尾（清掉归并的渲染覆盖层）
+                        break;
+                    }
+                    step = gen.next();
                 }
-                
-                if (!isStopped) {
-                    document.getElementById('status').textContent = '排序完成！';
-                    document.getElementById('progressFill').style.width = '100%';
-                    renderSlices([], [], Array.from({length: sliceCount}, (_, i) => i));
+
+                stopElapsedTimer();
+
+                if (isStopped) {
+                    statusEl.textContent = '已停止';
+                    renderSlices();
+                } else {
+                    statusEl.textContent = '排序完成！';
+                    doneSteps = totalSteps;
+                    updateProgressUI();
+                    renderSlices([], [], [0, sliceOrder.length - 1]);
                     playFullAudio();
                 }
             } catch (e) {
                 console.error(e);
+                statusEl.textContent = '出错';
+            } finally {
+                stopElapsedTimer();
+                isRunning = false;
+                isStopped = false;
+                startBtn.disabled = false;
+                shuffleBtn.disabled = false;
+                stopBtn.disabled = true;
+                sliceSlider.disabled = false;
+                algorithmSelect.disabled = false;
             }
-            
-            isRunning = false;
-            startBtn.disabled = false;
-            shuffleBtn.disabled = false;
-            stopBtn.disabled = true;
-        }
-
-        // 选择排序
-        async function selectionSort() {
-            const n = sliceOrder.length;
-            for (let i = 0; i < n - 1; i++) {
-                let minIdx = i;
-                for (let j = i + 1; j < n; j++) {
-                    if (isStopped) return;
-                    
-                    comparisons++;
-                    renderSlices([minIdx, j], [j]);
-                    playAudioSlice(sliceOrder[j]);
-                    
-                    if (sliceOrder[j] < sliceOrder[minIdx]) {
-                        minIdx = j;
-                    }
-                    
-                    updateStats();
-                    updateProgress();
-                    await sleep(delay);
-                }
-                
-                if (minIdx !== i) {
-                    [sliceOrder[i], sliceOrder[minIdx]] = [sliceOrder[minIdx], sliceOrder[i]];
-                    swaps++;
-                    updateStats();
-                }
-            }
-        }
-
-        // 插入排序
-        async function insertionSort() {
-            const n = sliceOrder.length;
-            for (let i = 1; i < n; i++) {
-                let key = sliceOrder[i];
-                let j = i - 1;
-                
-                while (j >= 0 && sliceOrder[j] > key) {
-                    if (isStopped) return;
-                    
-                    comparisons++;
-                    sliceOrder[j + 1] = sliceOrder[j];
-                    swaps++;
-                    
-                    renderSlices([j, j + 1], [j]);
-                    playAudioSlice(sliceOrder[j]);
-                    updateStats();
-                    updateProgress();
-                    await sleep(delay);
-                    
-                    j--;
-                }
-                sliceOrder[j + 1] = key;
-            }
-        }
-
-        // 快速排序
-        async function quickSort(low, high) {
-            if (low < high && !isStopped) {
-                const pi = await partition(low, high);
-                await quickSort(low, pi - 1);
-                await quickSort(pi + 1, high);
-            }
-        }
-
-        async function partition(low, high) {
-            const pivot = sliceOrder[high];
-            let i = low - 1;
-            
-            for (let j = low; j < high; j++) {
-                if (isStopped) return i + 1;
-                
-                comparisons++;
-                renderSlices([j, high], [j]);
-                playAudioSlice(sliceOrder[j]);
-                
-                if (sliceOrder[j] < pivot) {
-                    i++;
-                    [sliceOrder[i], sliceOrder[j]] = [sliceOrder[j], sliceOrder[i]];
-                    swaps++;
-                }
-                
-                updateStats();
-                updateProgress();
-                await sleep(delay);
-            }
-            
-            [sliceOrder[i + 1], sliceOrder[high]] = [sliceOrder[high], sliceOrder[i + 1]];
-            swaps++;
-            updateStats();
-            
-            return i + 1;
-        }
-
-        // 归并排序
-        async function mergeSort(left, right) {
-            if (left < right && !isStopped) {
-                const mid = Math.floor((left + right) / 2);
-                await mergeSort(left, mid);
-                await mergeSort(mid + 1, right);
-                await merge(left, mid, right);
-            }
-        }
-
-        async function merge(left, mid, right) {
-            const leftArr = sliceOrder.slice(left, mid + 1);
-            const rightArr = sliceOrder.slice(mid + 1, right + 1);
-            
-            let i = 0, j = 0, k = left;
-            
-            while (i < leftArr.length && j < rightArr.length && !isStopped) {
-                comparisons++;
-                renderSlices([k], [left + i, mid + 1 + j]);
-                playAudioSlice(sliceOrder[k]);
-                
-                if (leftArr[i] <= rightArr[j]) {
-                    sliceOrder[k] = leftArr[i];
-                    i++;
-                } else {
-                    sliceOrder[k] = rightArr[j];
-                    j++;
-                }
-                swaps++;
-                k++;
-                
-                updateStats();
-                updateProgress();
-                await sleep(delay);
-            }
-            
-            while (i < leftArr.length && !isStopped) {
-                sliceOrder[k] = leftArr[i];
-                renderSlices([k]);
-                playAudioSlice(sliceOrder[k]);
-                i++;
-                k++;
-                swaps++;
-                updateStats();
-                await sleep(delay);
-            }
-            
-            while (j < rightArr.length && !isStopped) {
-                sliceOrder[k] = rightArr[j];
-                renderSlices([k]);
-                playAudioSlice(sliceOrder[k]);
-                j++;
-                k++;
-                swaps++;
-                updateStats();
-                await sleep(delay);
-            }
-        }
-
-        // 堆排序
-        async function heapSort() {
-            const n = sliceOrder.length;
-            
-            for (let i = Math.floor(n / 2) - 1; i >= 0; i--) {
-                await heapify(n, i);
-            }
-            
-            for (let i = n - 1; i > 0; i--) {
-                if (isStopped) return;
-                
-                [sliceOrder[0], sliceOrder[i]] = [sliceOrder[i], sliceOrder[0]];
-                swaps++;
-                renderSlices([0, i]);
-                playAudioSlice(sliceOrder[0]);
-                updateStats();
-                updateProgress();
-                await sleep(delay);
-                
-                await heapify(i, 0);
-            }
-        }
-
-        async function heapify(n, i) {
-            let largest = i;
-            const left = 2 * i + 1;
-            const right = 2 * i + 2;
-            
-            if (left < n) {
-                comparisons++;
-                if (sliceOrder[left] > sliceOrder[largest]) {
-                    largest = left;
-                }
-            }
-            
-            if (right < n) {
-                comparisons++;
-                if (sliceOrder[right] > sliceOrder[largest]) {
-                    largest = right;
-                }
-            }
-            
-            if (largest !== i && !isStopped) {
-                [sliceOrder[i], sliceOrder[largest]] = [sliceOrder[largest], sliceOrder[i]];
-                swaps++;
-                
-                renderSlices([i, largest], [largest]);
-                playAudioSlice(sliceOrder[largest]);
-                updateStats();
-                await sleep(delay);
-                
-                await heapify(n, largest);
-            }
-        }
-
-        // 计算已排序元素数量（在正确位置的元素）
-        function countSortedElements() {
-            let count = 0;
-            for (let i = 0; i < sliceOrder.length; i++) {
-                if (sliceOrder[i] === i) {
-                    count++;
-                }
-            }
-            return count;
-        }
-
-        // 更新进度条 - 基于已排序元素比例
-        function updateProgress() {
-            const sorted = countSortedElements();
-            const percent = (sorted / sliceOrder.length) * 100;
-            document.getElementById('progressFill').style.width = percent + '%';
         }
 
         // 页面加载时显示提示
         window.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('status').textContent = '请选择资源';
+            statusEl.textContent = '请选择资源';
             placeholder.innerHTML = '<span>🎨</span><p>请选择预设或上传图片和音频</p>';
         });
     </script>
